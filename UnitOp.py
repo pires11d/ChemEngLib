@@ -588,6 +588,205 @@ class shellHX:
                           Mf=f.MassFlow, T=self.Th2(fluid1, fluid2))
 
 
+class plateHX:
+    def __init__(self, Ntubes, Ltube, Dtube_o, Dtube_i, Npasses, Dshell, P, B, Tc2=None, Th2=None, triangular_pitch=True):
+        self.Nt = Ntubes
+        self.Lt = Ltube
+        self.Dto = Dtube_o
+        self.Dti = Dtube_i
+        self.Np = Npasses
+        self.Ds = Dshell
+
+        self.P = P
+        self.B = B
+        self.TriangularPitch = triangular_pitch
+
+        self.ral = 0.15
+
+        self._Tc2 = Tc2
+        self._Th2 = Th2
+        self._error = 10
+        self._i = 0
+
+    @property
+    def Deq(self):
+        if self.TriangularPitch is True:
+            coef = 3.44
+        else:
+            coef = 4.00
+        return (coef*(self.P**2.0) - math.pi*(self.Dto**2.0))/(math.pi*self.Dto)
+    @property
+    def At(self):
+        return (math.pi*self.Dti**2)/4
+    @property
+    def Ai(self):
+        return self.At * self.Nt / self.Np
+    @property
+    def Ao(self):
+        return self.Ds * (self.P - self.Dto) * self.B / self.P
+    @property
+    def Area(self):
+        return self.Nt * self.ral * self.Lt
+
+
+    def ColdFluid(self, fluid1, fluid2):
+        if fluid1.Temperature > fluid2.Temperature:
+            return fluid2
+        else:
+            return fluid1
+    def HotFluid(self, fluid1, fluid2):
+        if fluid1.Temperature > fluid2.Temperature:
+            return fluid1
+        else:
+            return fluid2
+
+    def Q(self, fluid1, fluid2):
+        if self._Th2 is None:
+            mc = self.ColdFluid(fluid1,fluid2).MassFlow
+            Cpc = self.ColdFluid(fluid1,fluid2).HeatCapacity
+            Tc1 = self.ColdFluid(fluid1,fluid2).Temperature
+            Q = mc * Cpc * (self._Tc2 - Tc1)
+        else:
+            mh = self.HotFluid(fluid1, fluid2).MassFlow
+            Cph = self.HotFluid(fluid1, fluid2).HeatCapacity
+            Th1 = self.HotFluid(fluid1, fluid2).Temperature
+            Q = mh * Cph * (Th1 - self._Th2)
+        return Q
+
+    def Tc2(self, fluid1, fluid2):
+        if self._Tc2 is None:
+            mc = self.ColdFluid(fluid1,fluid2).MassFlow
+            Cpc = self.ColdFluid(fluid1, fluid2).HeatCapacity
+            Tc1 = self.ColdFluid(fluid1, fluid2).Temperature
+            Tc2 = Tc1 + self.Q(fluid1, fluid2)/(mc*Cpc)
+        else:
+            Tc2 = self._Tc2
+        return Tc2
+    def Th2(self, fluid1, fluid2):
+        if self._Th2 is None:
+            mh = self.HotFluid(fluid1,fluid2).MassFlow
+            Cph = self.HotFluid(fluid1, fluid2).HeatCapacity
+            Th1 = self.HotFluid(fluid1,fluid2).Temperature
+            Th2 = Th1 - self.Q(fluid1,fluid2)/(mh*Cph)
+        else:
+            Th2 = self._Th2
+        return Th2
+
+    def dTc(self, fluid1, fluid2):
+        return self.Th2(fluid1, fluid2) - self.ColdFluid(fluid1, fluid2).Temperature
+    def dTh(self, fluid1, fluid2):
+        return self.HotFluid(fluid1, fluid2).Temperature - self.Tc2(fluid1, fluid2)
+    def dTlm(self, fluid1, fluid2):
+        dTc = self.dTc(fluid1,fluid2)
+        dTh = self.dTh(fluid1, fluid2)
+        return (dTh - dTc) / math.log(dTh / dTc)
+    def R(self, fluid1, fluid2):
+        Tc1 = self.ColdFluid(fluid1, fluid2).Temperature
+        Th1 = self.HotFluid(fluid1, fluid2).Temperature
+        Tc2 = self.Tc2(fluid1, fluid2)
+        Th2 = self.Th2(fluid1, fluid2)
+        return (Th1-Th2)/(Tc2-Tc1)
+    def S(self, fluid1, fluid2):
+        Tc1 = self.ColdFluid(fluid1, fluid2).Temperature
+        Th1 = self.HotFluid(fluid1, fluid2).Temperature
+        Tc2 = self.Tc2(fluid1, fluid2)
+        return (Tc2-Tc1)/(Th1-Tc1)
+    def F(self, fluid1, fluid2):
+        R = self.R(fluid1, fluid2)
+        S = self.S(fluid1, fluid2)
+        num = math.sqrt(R**2+1)*math.log((1-S)/(1-R*S))
+        den = (R-1)*math.log((2-S*(R+1-math.sqrt(R**2+1)))/(2-S*(R+1+math.sqrt(R**2+1))))
+        return num/den
+    def dTlm_fixed(self, fluid1, fluid2):
+        return self.F(fluid1, fluid2) * self.dTlm(fluid1, fluid2)
+    def Ureq(self, fluid1, fluid2):
+        U = self.Q(fluid1, fluid2) / (self.Area * self.dTlm_fixed(fluid1, fluid2))
+        return U
+
+
+    def Tcm(self, fluid1, fluid2):
+        Tc1 = self.ColdFluid(fluid1, fluid2).Temperature
+        Tc2 = self.Tc2(fluid1, fluid2)
+        return (Tc1+Tc2)/2
+    def Thm(self, fluid1, fluid2):
+        Th1 = self.HotFluid(fluid1, fluid2).Temperature
+        Th2 = self.Th2(fluid1, fluid2)
+        return (Th1+Th2)/2
+
+    def OuterFluid(self, fluid1, fluid2):
+        if self.ColdFluid(fluid1,fluid2).MassFlow > self.HotFluid(fluid1,fluid2).MassFlow:
+            # self.HotFluid(fluid1,fluid2).Temperature = self._Thm(fluid1, fluid2)
+            return self.HotFluid(fluid1,fluid2)
+        else:
+            # self.ColdFluid(fluid1, fluid2).Temperature = self._Tcm(fluid1, fluid2)
+            return self.ColdFluid(fluid1, fluid2)
+    def InnerFluid(self, fluid1, fluid2):
+        if self.ColdFluid(fluid1,fluid2).MassFlow > self.HotFluid(fluid1,fluid2).MassFlow:
+            # self.ColdFluid(fluid1,fluid2).Temperature = self._Tcm(fluid1, fluid2)
+            return self.ColdFluid(fluid1,fluid2)
+        else:
+            # self.HotFluid(fluid1, fluid2).Temperature = self._Thm(fluid1, fluid2)
+            return self.HotFluid(fluid1, fluid2)
+
+    def hi(self, fluid1, fluid2):
+        i = self.InnerFluid(fluid1, fluid2)
+        if i is self.ColdFluid(fluid1, fluid2):
+            i.Temperature = self.Tcm(fluid1, fluid2)
+        else:
+            i.Temperature = self.Thm(fluid1, fluid2)
+        ki = i.Conductivity
+        Gi = i.MassFlow / self.Ai
+        Rei = Gi*self.Dti/i.Viscosity
+        Nui = Nu_D(Rei, Pr(i))
+        return (Nui*ki/self.Dti)*(self.Dti/self.Dto)
+    def ho(self, fluid1, fluid2):
+        o = self.OuterFluid(fluid1, fluid2)
+        if o is self.ColdFluid(fluid1, fluid2):
+            o.Temperature = self.Tcm(fluid1, fluid2)
+        else:
+            o.Temperature = self.Thm(fluid1, fluid2)
+        ko = o.Conductivity
+        Go = o.MassFlow / self.Ao
+        Reo = Go*self.Deq/o.Viscosity
+        Nuo = Nu_shell(Reo, Pr(o))
+        return Nuo*ko/self.Deq
+    def U(self, fluid1, fluid2):
+        hi = self.hi(fluid1, fluid2)
+        ho = self.ho(fluid1, fluid2)
+        U = (hi * ho) / (hi + ho)
+        return U
+
+    # def Qo(self, fluid1, fluid2):
+    #     U = self.U(fluid1, fluid2)
+    #     A = self.Area
+    #     dTlm = self.dTlm2(fluid1, fluid2)
+    #     return U*A*dTlm
+    # def Tc2real(self, fluid1, fluid2):
+    #     Qo = self.Qo(fluid1, fluid2)
+    #     mc = self.ColdFluid(fluid1, fluid2).MassFlow
+    #     Cpc = self.ColdFluid(fluid1, fluid2).HeatCapacity
+    #     Tc1 = min([fluid1.Temperature, fluid2.Temperature])
+    #     Tc2 = Tc1 + Qo/(mc*Cpc)
+    #     return Tc2
+    # def Th2real(self, fluid1, fluid2):
+    #     Qo = self.Qo(fluid1, fluid2)
+    #     mh = self.HotFluid(fluid1, fluid2).MassFlow
+    #     Cph = self.HotFluid(fluid1, fluid2).HeatCapacity
+    #     Th1 = max([fluid1.Temperature, fluid2.Temperature])
+    #     Th2 = Th1 - Qo/(mh*Cph)
+    #     return Th2
+
+    def HeatedFluidStream(self, fluid1, fluid2):
+        f = self.ColdFluid(fluid1, fluid2)
+        return FlowStream(f.Components, wi=f.MassFractions,
+                          Mf=f.MassFlow, T=self.Tc2(fluid1, fluid2))
+
+    def CooledFluidStream(self, fluid1, fluid2):
+        f = self.HotFluid(fluid1, fluid2)
+        return FlowStream(f.Components, wi=f.MassFractions,
+                          Mf=f.MassFlow, T=self.Th2(fluid1, fluid2))
+
+
 class Flash:
     def __init__(self, pressure=101325.0):
         self.Pressure = pressure
