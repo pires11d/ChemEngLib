@@ -56,3 +56,9 @@ def Nu_shell(Re, Pr):
     n = 1.0 / 3.0
     C = 0.36
     return C * Re**m * Pr**n
+
+def Nu_plate(Re, Pr):
+    m = 0.65
+    n = 0.4
+    C = 0.26
+    return C * Re**m * Pr**n

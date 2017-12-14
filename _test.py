@@ -18,8 +18,8 @@ from UnitOp import *
 air = FlowStream(['N2', 'O2'], wi=[0.7, 0.3], Vfo=0.007, T=300.0)
 gas = FlowStream(['N2', 'H2'], zi=[0.9, 0.1], Vfo=0.007, T=400.0)
 
-water = FlowStream(['water'], wi=[1.0], Mf=1.0, T=350.0)
-water2 = FlowStream(['water'], wi=[1.0], Mf=2.0, T=300.0)
+water = FlowStream(['water'], wi=[1.0], Mf=1.0, T=25+273)
+water2 = FlowStream(['water'], wi=[1.0], Mf=1.0, T=95+273)
 brine = FlowStream(['water', 'NaCl'], wi=[0.9, 0.1], Mf=2.0, electrolyte=True, T=300.0)
 acid = FlowStream(['water', 'hcl'], wi=[0.8, 0.1, 0.1], Mf=1.0, electrolyte=True, T=320.0)
 liquor = FlowStream(['water', 'hcl', 'FeCl2'], wi=[0.7, 0.2, 0.1], Mf=1.0, electrolyte=True, T=320.0)
@@ -99,6 +99,9 @@ hx = shellHX(Tc2=313.0, Ntubes=302, Ltube=Length(16).ft,
              Npasses=2.0, Dshell=Length(1.771).ft, P=Length(1.0).inch, B=Length(5.0).inch)
 # print "Th2: ", hx.Th2(water, water2)
 # print "Tc2: ", hx.Tc2(water, water2)
+
+hx2 = plateHX(1500,55,40)
+#print(hx2.U_real(water, water2))
 
 dc = Decanter(height=4.5)
 # print(dc.SettlingVelocity(L1,0.8))
