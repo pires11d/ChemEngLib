@@ -639,9 +639,9 @@ class plateHX:
         return Q
 
     def dTc(self, fluid1, fluid2):
-        return self.Th2(fluid1, fluid2) - self.ColdFluid(fluid1, fluid2).Temperature
+        return self.Th2 - self.ColdFluid(fluid1, fluid2).Temperature
     def dTh(self, fluid1, fluid2):
-        return self.HotFluid(fluid1, fluid2).Temperature - self.Tc2(fluid1, fluid2)
+        return self.HotFluid(fluid1, fluid2).Temperature - self.Tc2
     def dTlm(self, fluid1, fluid2):
         dTc = self.dTc(fluid1,fluid2)
         dTh = self.dTh(fluid1, fluid2)
@@ -649,13 +649,13 @@ class plateHX:
     def R(self, fluid1, fluid2):
         Tc1 = self.ColdFluid(fluid1, fluid2).Temperature
         Th1 = self.HotFluid(fluid1, fluid2).Temperature
-        Tc2 = self.Tc2(fluid1, fluid2)
-        Th2 = self.Th2(fluid1, fluid2)
+        Tc2 = self.Tc2
+        Th2 = self.Th2
         return (Th1-Th2)/(Tc2-Tc1)
     def S(self, fluid1, fluid2):
         Tc1 = self.ColdFluid(fluid1, fluid2).Temperature
         Th1 = self.HotFluid(fluid1, fluid2).Temperature
-        Tc2 = self.Tc2(fluid1, fluid2)
+        Tc2 = self.Tc2
         return (Tc2-Tc1)/(Th1-Tc1)
     def F(self, fluid1, fluid2):
         R = self.R(fluid1, fluid2)
@@ -664,7 +664,11 @@ class plateHX:
         den = (R-1)*math.log((2-S*(R+1-math.sqrt(R**2+1)))/(2-S*(R+1+math.sqrt(R**2+1))))
         return num/den
     def dTlm_fixed(self, fluid1, fluid2):
-        return self.F(fluid1, fluid2) * self.dTlm(fluid1, fluid2)
+        try:
+            return self.F(fluid1, fluid2) * self.dTlm(fluid1, fluid2)
+        except:
+            return self.dTlm(fluid1, fluid2)
+
     def Area(self, fluid1, fluid2):
         A = self.Q(fluid1, fluid2) / (self.U * self.dTlm_fixed(fluid1, fluid2))
         return A

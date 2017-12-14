@@ -20,6 +20,8 @@ gas = FlowStream(['N2', 'H2'], zi=[0.9, 0.1], Vfo=0.007, T=400.0)
 
 water = FlowStream(['water'], wi=[1.0], Mf=1.0, T=25+273)
 water2 = FlowStream(['water'], wi=[1.0], Mf=1.0, T=95+273)
+water3 = FlowStream(['water'], wi=[1.0], Mf=1.0, T=100+273)
+
 brine = FlowStream(['water', 'NaCl'], wi=[0.9, 0.1], Mf=2.0, electrolyte=True, T=300.0)
 acid = FlowStream(['water', 'hcl'], wi=[0.8, 0.1, 0.1], Mf=1.0, electrolyte=True, T=320.0)
 liquor = FlowStream(['water', 'hcl', 'FeCl2'], wi=[0.7, 0.2, 0.1], Mf=1.0, electrolyte=True, T=320.0)
@@ -100,8 +102,13 @@ hx = shellHX(Tc2=313.0, Ntubes=302, Ltube=Length(16).ft,
 # print "Th2: ", hx.Th2(water, water2)
 # print "Tc2: ", hx.Tc2(water, water2)
 
-hx2 = plateHX(1500,55,40)
-#print(hx2.U_real(water, water2))
+hx2 = plateHX(1500,55+273,40+273)
+print(hx2.U_real(water,water2))
+print(hx2.Area(water,water2))
+
+hx3 = plateHX(1500,55+273,100+273,True)
+print(hx3.U_real(water,water3))
+print(hx3.Area(water,water3))
 
 dc = Decanter(height=4.5)
 # print(dc.SettlingVelocity(L1,0.8))
@@ -297,7 +304,7 @@ def alpha(mixture, P=101325):
     plt.legend(mixture.Components)
     plt.show()
 
-alpha(mixxx)
+# alpha(mixxx)
 # yx(mixx2)
 # Txy(mixx2)
 
