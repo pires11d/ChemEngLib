@@ -8,8 +8,6 @@ from UnitOp import *
 
 # TODO: Txy with deviation
 # TODO: Multicomponent 'batchRectifier'
-# TODO: Heat Exchanger with phase change
-# TODO: Heater
 # TODO: Adsorber
 
 
