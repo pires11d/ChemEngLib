@@ -1,42 +1,31 @@
+"""Module that contains classes that represent the chemical components."""
+
+
 from collections import OrderedDict
-from thermo import Chemical as che
-from thermo import Mixture as mix
-from thermo import electrochem as el
-from thermo import UNIFAC
 from Geometry import Circle
 from Numerical import *
 
 
 class Substance:
     def __init__(self, name, T=298.15, P=101325.0):
-        self.Name = name
-        self.Temperature = T
-        self.Pressure = P
 
-    @property
-    def chemical(self):
-        return che(self.Name, T=self.Temperature, P=self.Pressure)
-    @property
-    def CAS(self):
-        return self.chemical.CAS
-    @property
-    def MolarMass(self):
-        return self.chemical.MW
-    @property
-    def Phase(self):
-        return self.chemical.phase
-    @property
-    def Density(self):
-        return self.chemical.rho
-    @property
-    def HeatCapacity(self):
-        return self.chemical.Cp
-    @property
-    def Viscosity(self):
-        return self.chemical.mu
 
 
 class Mixture:
+    def __init__(self, components, wi, T=298.15, P=101325.0):
+        self.Components = components
+        self.MassFractions = wi
+        self.Temperature = T
+        self.Pressure = P
+
+
+#region THERMO
+from thermo import Chemical as che
+from thermo import Mixture as mix
+from thermo import electrochem as el
+from thermo import UNIFAC
+
+class thermoMixture:
     def __init__(self, components, wi, T=298.15, P=101325.0, electrolyte=False):
         self.Components = components
         self.MassFractions = wi
@@ -77,8 +66,6 @@ class Mixture:
     @property
     def Enthalpy(self):
         return self.mixture.H
-
-# HIDDEN PROPERTIES
 
     @property
     def _w(self):
