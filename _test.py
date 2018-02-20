@@ -3,6 +3,7 @@ from Converter import *
 from Correlation import *
 from Numerical import *
 from Material import *
+
 from UnitOp import *
 
 
@@ -13,31 +14,31 @@ from UnitOp import *
 
 #region FLOW STREAMS
 
-air = FlowStream(['N2', 'O2'], wi=[0.7, 0.3], Vfo=0.007, T=300.0)
-gas = FlowStream(['N2', 'H2'], zi=[0.9, 0.1], Vfo=0.007, T=400.0)
+air = thermoFlowStream(['N2', 'O2'], wi=[0.7, 0.3], Vfo=0.007, T=300.0)
+gas = thermoFlowStream(['N2', 'H2'], zi=[0.9, 0.1], Vfo=0.007, T=400.0)
 
-water = FlowStream(['water'], wi=[1.0], Mf=1.0, T=25+273)
-water2 = FlowStream(['water'], wi=[1.0], Mf=1.0, T=95+273)
-water3 = FlowStream(['water'], wi=[1.0], Mf=1.0, T=100+273)
+water = thermoFlowStream(['water'], wi=[1.0], Mf=1.0, T=25+273)
+water2 = thermoFlowStream(['water'], wi=[1.0], Mf=1.0, T=95+273)
+water3 = thermoFlowStream(['water'], wi=[1.0], Mf=1.0, T=100+273)
 
-brine = FlowStream(['water', 'NaCl'], wi=[0.9, 0.1], Mf=2.0, electrolyte=True, T=300.0)
-acid = FlowStream(['water', 'hcl'], wi=[0.8, 0.1, 0.1], Mf=1.0, electrolyte=True, T=320.0)
-liquor = FlowStream(['water', 'hcl', 'FeCl2'], wi=[0.7, 0.2, 0.1], Mf=1.0, electrolyte=True, T=320.0)
-feed = FlowStream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=1.0, T=354.0)
-mix = FlowStream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=345.0)
+brine = thermoFlowStream(['water', 'NaCl'], wi=[0.9, 0.1], Mf=2.0, electrolyte=True, T=300.0)
+acid = thermoFlowStream(['water', 'hcl'], wi=[0.8, 0.1, 0.1], Mf=1.0, electrolyte=True, T=320.0)
+liquor = thermoFlowStream(['water', 'hcl', 'FeCl2'], wi=[0.7, 0.2, 0.1], Mf=1.0, electrolyte=True, T=320.0)
+feed = thermoFlowStream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=1.0, T=354.0)
+mix = thermoFlowStream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=345.0)
 
-oxide = FlowStream(['Fe2O3', 'FeCl2'], wi=[0.9, 0.1], Mf=5.0)
-iron = FlowStream(['iron'], wi=[1.0], Mf=Mass(100).ton/3600.0)
+oxide = thermoFlowStream(['Fe2O3', 'FeCl2'], wi=[0.9, 0.1], Mf=5.0)
+iron = thermoFlowStream(['iron'], wi=[1.0], Mf=Mass(100).ton/3600.0)
 iron.ParticleSize = 100e-3
 
-G1 = FlowStream(['N2', 'O2', 'aluminum', 'iron'], wi=[0.7, 0.20, 0.06, 0.04], Vf=0.033)
+G1 = thermoFlowStream(['N2', 'O2', 'aluminum', 'iron'], wi=[0.7, 0.20, 0.06, 0.04], Vf=0.033)
 G1.ParticleSize = 0.5e-6
 G1.ParticleCharge = Energy(10).eV
 
-L1 = FlowStream(['water', 'sodium sulphate'], wi=[0.8, 0.2], Vf=0.25)
+L1 = thermoFlowStream(['water', 'sodium sulphate'], wi=[0.8, 0.2], Vf=0.25)
 L1.ParticleSize = 2e-3
 
-GL = FlowStream(['water', 'N2', 'O2'], wi=[0.25, 0.50, 0.25], Mf=1.0)
+GL = thermoFlowStream(['water', 'N2', 'O2'], wi=[0.25, 0.50, 0.25], Mf=1.0)
 
 #endregion
 
@@ -48,6 +49,7 @@ outlet_ratio_list = [0*t for t in t_list]
 
 cTk = cylTank(tank_diameter=1.0, tank_height=1.0, cone_angle=30.0)
 # cTk.LiquidHeights([water],outlet_ratio_list,t_list,plot=True)
+cTk.Animation([water],outlet_ratio_list,t_list)
 
 rTk = recTank(height=1.0, length=4.0, width=1.0)
 # rTk.LiquidHeights([water],outlet_ratio_list,t_list,plot=True)
@@ -60,13 +62,13 @@ cy = Hydrocyclone(Dc=0.16)
 # print "efficiency ", cy.Efficiency(F1)
 # print "cyclone diameter", cy.CycloneDiameter(F1)
 # print cy.OverFlowFluidFractions(F2), cy.OverFlowSolidFractions(F2)
-# print cy.UnderFlowStream(F2).MassFractions
-# print cy.OverFlowStream(F2).MassFractions
+# print cy.UnderthermoFlowStream(F2).MassFractions
+# print cy.OverthermoFlowStream(F2).MassFractions
 
 sp = Splitter(outlet_fractions=[0.2, 0.8])
 # print sp.OutletFlows(acid)
 # print sp.NumberOfOutlets
-# Fi = sp.OutletFlowStreams(acid)
+# Fi = sp.OutletthermoFlowStreams(acid)
 # print Fi[0].MassFlow
 
 mi = Mixer()
@@ -114,8 +116,8 @@ dc = Decanter(height=4.5)
 # print(dc.Length(L1, 0.8))
 # print(dc.Volume(L1,0.8))
 # print(dc.HorizontalVelocity(L1,0.8))
-# print(dc.OverFlowStream(L1).Components)
-# print(dc.UnderFlowStream(L1).Components)
+# print(dc.OverthermoFlowStream(L1).Components)
+# print(dc.UnderthermoFlowStream(L1).Components)
 # print(dc.HydraulicRadius(L1, 0.8))
 # dc.FlowType(L1,0.8)
 
@@ -208,14 +210,14 @@ esp = Electrostatic(length=6, height=3, electric_field=50000, number_of_plates=2
 
 #region PLOTS
 
-mixx = FlowStream(['heptane', 'hexane'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx2 = FlowStream(['toluene', 'benzene'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx3 = FlowStream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx4 = FlowStream(['ethanol', '1-propanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx5 = FlowStream(['ethanol', '2-propanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx6 = FlowStream(['ethanol', 'butanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx7 = FlowStream(['methanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixxx = FlowStream(['chloroform', 'ether', 'ethanol'], zi=[0.5, 0.2, 0.3], Nf=0.0, T=298.0)
+mixx = thermoFlowStream(['heptane', 'hexane'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+mixx2 = thermoFlowStream(['toluene', 'benzene'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+mixx3 = thermoFlowStream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+mixx4 = thermoFlowStream(['ethanol', '1-propanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+mixx5 = thermoFlowStream(['ethanol', '2-propanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+mixx6 = thermoFlowStream(['ethanol', 'butanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+mixx7 = thermoFlowStream(['methanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+mixxx = thermoFlowStream(['chloroform', 'ether', 'ethanol'], zi=[0.5, 0.2, 0.3], Nf=0.0, T=298.0)
 
 def Txy(binary_mixture, P=101325, x1=True):
     binary_mixture.Pressure = P

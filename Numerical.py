@@ -1,3 +1,7 @@
+"""Module that contains all Numerical Methods 
+i.e. derivation, integration and root finding algorithms."""
+
+
 def dfdx(f, xo, dx):
     df = (f(xo+dx)-f(xo-dx))/dx
     return df

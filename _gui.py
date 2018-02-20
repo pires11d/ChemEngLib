@@ -6,16 +6,16 @@ from Material import *
 from UnitOp import *
 
 
-water = FlowStream(['water'], wi=[1.0], Mf=1.0, T=25+273)
+#region STREAM
+water = thermoFlowStream(['water'], wi=[1.0], Mf=1.0, T=25+273)
+#endregion
 
 
 #region INTERFACE
-
 from tkinter import *
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
-
 
 # Initializing Parent Interface #
 root = Tk()
@@ -127,8 +127,11 @@ class DynamicGraph(Frame):
         Ht = tanque.TankHeight
         Hs = tanque.TankHeight * 1.3
         maximum = max(tanque.D, Ht)
-        h_list = tanque.LiquidHeights([water], outlet_list, t_list, return_array=True)
-        d_list = tanque.LiquidDiameters([water], outlet_list, t_list, return_array=True)
+
+        t_list = np.linspace(0,200,200)
+        outlet_list = [0*t for t in t_list]
+        h_list = tanque.LiquidHeights([water], outlet_list, t_list)
+        d_list = tanque.LiquidDiameters([water],outlet_list,t_list)
         x_list = [tuple([-d / 2, d / 2]) for d in d_list]
         y_list = [tuple([h, h]) for h in h_list]
 
@@ -147,13 +150,13 @@ class DynamicGraph(Frame):
         xS = [0]
         yS = [Hs]
         ax.scatter(xS, yS, s=100.0, c='gray')
-        endregion
+        #endregion
 
         #region DYNAMIC PLOTS
 
         for i, t in enumerate(t_list):
              # liquid level #
-             if tanque.theta > 0.0:
+             if tanque.Theta > 0.0:
                  ax.plot(x_list[i], y_list[i], color='cyan')
              else:
                  ax.stackplot(x_list[i], y_list[i], color='cyan')
@@ -161,9 +164,9 @@ class DynamicGraph(Frame):
              xd = [0, 0, 0, 0, 0]
              xd1 = np.linspace(0, -0.05, 5)
              xd2 = np.linspace(0, +0.05, 5)
-             yd = [0.1 * ht + 0.9 * hs, 0.3 * ht + 0.7 * hs, 0.5 * ht + 0.5 * hs, 0.7 * ht + 0.3 * hs,
-                   0.9 * ht + 0.1 * hs]
-             yyd = [hs, 0.2 * ht + 0.8 * hs, 0.4 * ht + 0.6 * hs, 0.6 * ht + 0.4 * hs, 0.8 * ht + 0.2 * hs]
+             yd = [0.1 * Ht + 0.9 * Hs, 0.3 * Ht + 0.7 * Hs, 0.5 * Ht + 0.5 * Hs, 0.7 * Ht + 0.3 * Hs,
+                   0.9 * Ht + 0.1 * Hs]
+             yyd = [Hs, 0.2 * Ht + 0.8 * Hs, 0.4 * Ht + 0.6 * Hs, 0.6 * Ht + 0.4 * Hs, 0.8 * Ht + 0.2 * Hs]
              a = ax.scatter(xd, yd, s=20.0, c='cyan')
              a1 = ax.scatter(xd1, yd, s=10.0, c='cyan')
              a2 = ax.scatter(xd2, yd, s=10.0, c='cyan')

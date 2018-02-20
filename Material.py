@@ -1,29 +1,14 @@
-"""Module that contains classes that represent the chemical components."""
+"""Module that contains classes that represent the chemical components of a system."""
 
 
 from collections import OrderedDict
 from Geometry import Circle
 from Numerical import *
-
-
-class Substance:
-    def __init__(self, name, T=298.15, P=101325.0):
-
-
-
-class Mixture:
-    def __init__(self, components, wi, T=298.15, P=101325.0):
-        self.Components = components
-        self.MassFractions = wi
-        self.Temperature = T
-        self.Pressure = P
-
-
-#region THERMO
 from thermo import Chemical as che
 from thermo import Mixture as mix
 from thermo import electrochem as el
 from thermo import UNIFAC
+
 
 class thermoMixture:
     def __init__(self, components, wi, T=298.15, P=101325.0, electrolyte=False):
@@ -86,7 +71,7 @@ class thermoMixture:
         return mf
 
 
-class FlowStream:
+class thermoFlowStream:
     def __init__(self, components,
                  T=298.15, P=101325.0,
                  wi=None, vi=None, zi=None,
@@ -727,4 +712,6 @@ class FlowStream:
 
     def Velocity(self, diameter):
         return self.VolumeFlow / Circle(diameter).Area
+
+
 

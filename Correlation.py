@@ -1,3 +1,5 @@
+"""Module that contains all transport phenomena correlations (dimensionless numbers)"""
+
 def Re(stream, diameter):
     return stream.Density * stream.Velocity(diameter) * diameter / stream.Viscosity
 

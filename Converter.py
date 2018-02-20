@@ -1,3 +1,20 @@
+"""Module that contains a Unit Converter to the International System (SI).
+It contains the following classes:
+- Mass
+- Time
+- Temperature
+- Length
+- Area
+- Volume
+- Force
+- Pressure
+- Energy
+- Power
+- Viscosity
+- Surface Tension"""
+
+
+
 class Mass:
     def __init__(self,amount):
         self.amount = amount
@@ -242,3 +259,17 @@ class SurfaceTension:
     @property
     def lbf_in(self):
         return self.amount * 175.12683699
+
+
+class Velocity:
+    def __init__(self,amount):
+        self.amount = amount
+    @property
+    def cm_s(self):
+        return self.amount * 1e-2
+    @property
+    def m_h(self):
+        return self.amount * 3600
+    @property
+    def km_h(self):
+        return self.amount * 3.6
