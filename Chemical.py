@@ -89,7 +89,7 @@ class Mixture:
     def Mass(self):
         if self.M is None:
             if self.N is None:
-                M = V * self.Density
+                M = self.V * self.Density
             else:
                 M = self.N * self.MolarMass
         else:
@@ -102,7 +102,7 @@ class Mixture:
             if self.N is None:
                 V = self.M / self.Density
             else:
-                # Ideal gas volume #
+                # Ideal gas #
                 V = self.N * 8.314 * self.Temperature / self.Pressure 
         else:
             V = self.V
@@ -114,6 +114,7 @@ class Mixture:
             if self.V is None:
                 N = self.M / self.MolarMass
             else:
+                # Ideal gas #
                 N = (self.Pressure * self.V) / (8.314 * self.Temperature)
         else:
             N = self.N
@@ -199,6 +200,20 @@ class Stream:
             return self.MassFlow / self.MolarMass
         else:
             return self.Nf
+
+    @property
+    def MassFlows(self):
+        return [wi * self.MassFlow for wi in self.MassFractions]
+
+    @property
+    def VolumeFlows(self):
+        return [zi * self.VolumeFlow for zi in self.MolarFractions]
+
+    @property
+    def MolarFlows(self):
+        return [zi * self.MolarFlow for zi in self.MolarFractions] 
+
+
 
     @property
     def Velocity(self, diameter):
