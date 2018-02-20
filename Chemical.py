@@ -3,7 +3,6 @@
 
 from collections import OrderedDict
 from Geometry import Circle
-from Numerical import *
 
 
 class Substance:
