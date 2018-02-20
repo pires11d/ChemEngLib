@@ -1,9 +1,10 @@
-"""Module that contains classes that represent the chemical components of a system."""
+"""Module that contains classes that represent the chemical components of a system.
+(USES THERMO PACKAGE)"""
 
 
 from collections import OrderedDict
 from Geometry import Circle
-from Numerical import *
+from Numerical import Newton
 from thermo import Chemical as che
 from thermo import Mixture as mix
 from thermo import electrochem as el

@@ -1,7 +1,11 @@
+"""Module that contains all of the most common Unit Operations used in Process Industries"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 from Material import thermoFlowStream
+
 from Geometry import *
 from Correlation import *
 
@@ -993,8 +997,8 @@ class Venturi:
         self.NumberOfNozzles = number_of_nozzles
         self.NozzleDiameter = nozzle_diameter
         self.ThroatDiameter = throat_diameter
-        # self._SafetyFactor = safety_factor
-        # self._EquilibriumSlope = 0.1
+        self._SafetyFactor = 1.0  # between 1-2
+        self._EquilibriumSlope = 0.1
 
     @property
     def n(self):

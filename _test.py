@@ -2,9 +2,8 @@ import time
 from Converter import *
 from Correlation import *
 from Numerical import *
-from Material import *
-
 from UnitOp import *
+from thermoChemical import *
 
 
 # TODO: Txy with deviation
@@ -49,7 +48,7 @@ outlet_ratio_list = [0*t for t in t_list]
 
 cTk = cylTank(tank_diameter=1.0, tank_height=1.0, cone_angle=30.0)
 # cTk.LiquidHeights([water],outlet_ratio_list,t_list,plot=True)
-cTk.Animation([water],outlet_ratio_list,t_list)
+# cTk.Animation([water],outlet_ratio_list,t_list)
 
 rTk = recTank(height=1.0, length=4.0, width=1.0)
 # rTk.LiquidHeights([water],outlet_ratio_list,t_list,plot=True)
@@ -103,12 +102,12 @@ hx = shellHX(Tc2=313.0, Ntubes=302, Ltube=Length(16).ft,
 # print "Tc2: ", hx.Tc2(water, water2)
 
 hx2 = plateHX(1500,55+273,40+273)
-print(hx2.U_real(water,water2))
-print(hx2.Area(water,water2))
+#print(hx2.U_real(water,water2))
+#print(hx2.Area(water,water2))
 
 hx3 = plateHX(1500,55+273,100+273,True)
-print(hx3.U_real(water,water3))
-print(hx3.Area(water,water3))
+#print(hx3.U_real(water,water3))
+#print(hx3.Area(water,water3))
 
 dc = Decanter(height=4.5)
 # print(dc.SettlingVelocity(L1,0.8))
@@ -304,8 +303,8 @@ def alpha(mixture, P=101325):
     plt.legend(mixture.Components)
     plt.show()
 
-# alpha(mixxx)
-# yx(mixx2)
-# Txy(mixx2)
+#alpha(mixxx)
+#yx(mixx2)
+#Txy(mixx2)
 
 #endregion

@@ -11,7 +11,10 @@ It contains the following classes:
 - Energy
 - Power
 - Viscosity
-- Surface Tension"""
+- Surface Tension
+- Velocity
+- MassFlow
+- VolumeFlow"""
 
 
 
@@ -266,10 +269,41 @@ class Velocity:
         self.amount = amount
     @property
     def cm_s(self):
-        return self.amount * 1e-2
+        return self.amount / 100
     @property
     def m_h(self):
-        return self.amount * 3600
+        return self.amount / 3600
     @property
     def km_h(self):
-        return self.amount * 3.6
+        return self.amount / 3.6
+
+
+class MassFlow:
+    def __init__(self,amount):
+        self.amount = amount
+    @property
+    def kg_h(self):
+        return self.amount / 3600
+    @property
+    def ton_h(self):
+        return self.amount / 3.6
+    @property
+    def g_s(self):
+        return self.amount / 1000
+
+
+class VolumeFlow:
+    def __init__(self,amount):
+        self.amount = amount
+    @property
+    def m3_h(self):
+        return self.amount / 3600
+    @property
+    def L_h(self):
+        return self.amount / 3600000
+    @property
+    def L_min(self):
+        return self.amount / 60000
+    @property
+    def L_s(self):
+        return self.amount / 1000
