@@ -42,11 +42,13 @@ class Mixture:
         self.Pressure = 101325.0
         self._To = 273.15
         self._Po = 101325.0
+        self.isElectrolyte = False
 
     @property
     def MolarMass(self):
         MM = 0
-        for i,MMi in enumerate(self.MolarMasses):
+        # TODO: Rever equação
+        for i,MMi in enumerate(self.MolarMasses.values()):
             MM += self.MolarFractions[i] * MMi
         return MM
 
@@ -67,7 +69,7 @@ class Mixture:
                 for j, MMj in enumerate(self.MolarMasses.values()):
                     den += self.MolarFractions[j] * MMj
                 wi.append(num / den)
-        else: 
+        else:
             wi = self.wi
         return wi
 
@@ -162,10 +164,11 @@ class Stream:
         self.Vfo = None
         self.Nf = None
         # Other properties
-        self.ParticleSize = None
-        self.ParticleCharge = None
         self._To = 273.15
         self._Po = 101325.0
+        self.isElectrolyte = False
+        self.ParticleSize = None
+        self.ParticleCharge = None
         
     @property
     def MassFlow(self):

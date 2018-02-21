@@ -11,13 +11,19 @@ from thermo import electrochem as el
 from thermo import UNIFAC
 
 
-class thermoMixture:
-    def __init__(self, components, wi, T=298.15, P=101325.0, electrolyte=False):
+class Mixture:
+    def __init__(self, components):
         self.Components = components
-        self.MassFractions = wi
-        self.Temperature = T
-        self.Pressure = P
-        self.isElectrolyte = electrolyte
+        self.Temperature = 298.15
+        self.Pressure = 101325.0
+        self.isElectrolyte = False
+        
+        self.wi = None
+        self.zi = None
+        self.vi = None
+        self.M = None
+        self.V = None
+        self.N = None
 
     @property
     def mixture(self):
@@ -28,6 +34,9 @@ class thermoMixture:
     @property
     def MolarMass(self):
         return self.mixture.MW
+    @property
+    def MolarMasses(self):
+        return OrderedDict(zip(self.Components,self.mixture.MWs))
     @property
     def Phase(self):
         return self.mixture.phase
@@ -53,6 +62,74 @@ class thermoMixture:
     def Enthalpy(self):
         return self.mixture.H
 
+    # NON-THERMO #
+
+    @property
+    def MassFractions(self):
+        wi = []
+        if self.wi is None:
+            for i, MMi in enumerate(self.MolarMasses.values()):
+                den = 0
+                num = self.MolarFractions[i] * MMi
+                for j, MMj in enumerate(self.MolarMasses.values()):
+                    den += self.MolarFractions[j] * MMj
+                wi.append(num / den)
+        else: 
+            wi = self.wi
+        return wi
+
+    @property
+    def MolarFractions(self):
+        zi = []
+        if self.zi is None:
+                for i, MMi in enumerate(self.MolarMasses.values()):
+                    den = 0
+                    num = self.MassFractions[i] / MMi
+                    for j, MMj in enumerate(self.MolarMasses.values()):
+                        den += self.MassFractions[j] / MMj
+                    zi.append(num / den)
+        else:
+            zi = self.zi
+        return zi
+
+    @property
+    def Mass(self):
+        if self.M is None:
+            if self.N is None:
+                M = self.V * self.Density
+            else:
+                M = self.N * self.MolarMass
+        else:
+            M = self.M
+        return M
+
+    @property
+    def Volume(self):
+        if self.V is None:
+            if self.N is None:
+                V = self.M / self.Density
+            else:
+                # Ideal gas #
+                V = self.N * 8.314 * self.Temperature / self.Pressure 
+        else:
+            V = self.V
+        return V
+
+    @property
+    def Moles(self):
+        if self.N is None:
+            if self.V is None:
+                N = self.M / self.MolarMass
+            else:
+                # Ideal gas #
+                N = (self.Pressure * self.V) / (8.314 * self.Temperature)
+        else:
+            N = self.N
+        return N
+
+
+    # HIDDEN METHODS #
+
     @property
     def _w(self):
         for i, c in enumerate(self.Components):
@@ -72,26 +149,21 @@ class thermoMixture:
         return mf
 
 
-class thermoFlowStream:
-    def __init__(self, components,
-                 T=298.15, P=101325.0,
-                 wi=None, vi=None, zi=None,
-                 Mf=None, Vf=None, Vfo=None, Nf=None,
-                 electrolyte=False):
+class Stream:
+    def __init__(self, components):
 
         self.Components = components
-        self.Temperature = T
-        self.Pressure = P
-        self.isElectrolyte = electrolyte
+        self.Temperature = 298.15
+        self.Pressure = 101325.0
+        self.isElectrolyte = False
 
-        self._wi = wi
-        self._vi = vi
-        self._zi = zi
-
-        self._Mf = Mf
-        self._Vf = Vf
-        self._Vfo = Vfo
-        self._Nf = Nf
+        self.wi = None
+        self.vi = None
+        self.zi = None
+        self.Mf = None
+        self.Vf = None
+        self.Vfo = None
+        self.Nf = None
 
         self._Po = 101325.0
         self._To = 273.15
@@ -140,40 +212,40 @@ class thermoFlowStream:
 
     @property
     def MassFlow(self):
-        if self._Mf is None:
-            if self._Nf is None:
+        if self.Mf is None:
+            if self.Nf is None:
                 return self.VolumeFlow * self.Density
             else:
-                return self._Nf * self.MolarMass
+                return self.Nf * self.MolarMass
         else:
-            return self._Mf
+            return self.Mf
     @property
     def VolumeFlow(self):
-        if self._Vf is None:
-            if self._Vfo is None:
-                return self._Mf / self.Density
+        if self.Vf is None:
+            if self.Vfo is None:
+                return self.Mf / self.Density
             else:
                 return self.NormalVolumeFlow * (self._Po / self._To) * (self.Temperature / self.Pressure)
         else:
-            return self._Vf
+            return self.Vf
     @property
     def NormalVolumeFlow(self):
-        if self._Vfo is None:
+        if self.Vfo is None:
             return self.VolumeFlow * (self._To / self._Po) * (self.Pressure / self.Temperature)
         else:
-            return self._Vfo
+            return self.Vfo
     @property
     def MolarFlow(self):
-        if self._Nf is None:
+        if self.Nf is None:
             return self.MassFlow / self.MolarMass
         else:
-            return self._Nf
+            return self.Nf
 
     # COMPONENT LISTS #
 
     @property
     def MassFractions(self):
-        if self._wi is None:
+        if self.wi is None:
             wi = []
             for i, MW in enumerate(self.MolarMasses.values()):
                 den = 0
@@ -183,11 +255,11 @@ class thermoFlowStream:
                 wi.append(num / den)
             return wi
         else:
-            return self._wi
+            return self.wi
     @property
     def MolarFractions(self):
-        if self._zi is None:
-            if self._vi is None:
+        if self.zi is None:
+            if self.vi is None:
                 zi = []
                 for i, MW in enumerate(self.MolarMasses.values()):
                     den = 0
@@ -197,16 +269,16 @@ class thermoFlowStream:
                     zi.append(num / den)
                 return zi
             else:
-                return self._vi
+                return self.vi
         else:
-            return self._zi
+            return self.zi
     @property
     def VolumeFractions(self):
         if self.Phase == 'g':
-            if self._vi is None:
+            if self.vi is None:
                 return self.MolarFractions
             else:
-                return self._vi
+                return self.vi
         else:
             return 'not a gas!'
     @property
@@ -365,21 +437,21 @@ class thermoFlowStream:
             return el.Laliberte_density(self.Temperature, self._MassFractions, self._CAS)
 
     @property
-    def GasHeatCapacity(self):
+    def GasSpecificHeat(self):
         if self.GasContent > 0:
             return mix(self.GasComponents, ws=self.GasFractions,
                        T=self.Temperature, P=self.Pressure).Cpg
         else:
             return 0.0
     @property
-    def LiquidHeatCapacity(self):
+    def LiquidSpecificHeat(self):
         if self.LiquidContent > 0:
             return mix(self.LiquidComponents, ws=self.LiquidFractions,
                        T=self.Temperature, P=self.Pressure).Cpl
         else:
             return 0.0
     @property
-    def SolidHeatCapacity(self):
+    def SolidSpecificHeat(self):
         if self.SolidContent > 0:
             if self._IronOxide is True:
                 return mix(self.SolidComponents, ws=self.SolidFractions, T=self.Temperature, P=self.Pressure).\
@@ -391,22 +463,22 @@ class thermoFlowStream:
         else:
             return 0.0
     @property
-    def HeatCapacity(self):
+    def SpecificHeat(self):
         if self.isElectrolyte is False:
             if self.GasContent > 0:
                 if self.SolidContent > 0:
-                    return (self.GasContent * self.GasHeatCapacity +
-                            self.SolidContent * self.SolidHeatCapacity)
+                    return (self.GasContent * self.GasSpecificHeat +
+                            self.SolidContent * self.SolidSpecificHeat)
                 else:
-                    return self.GasHeatCapacity
+                    return self.GasSpecificHeat
             if self.LiquidContent > 0:
                 if self.SolidContent > 0:
-                    return (self.LiquidContent * self.LiquidHeatCapacity +
-                            self.SolidContent * self.SolidHeatCapacity)
+                    return (self.LiquidContent * self.LiquidSpecificHeat +
+                            self.SolidContent * self.SolidSpecificHeat)
                 else:
-                    return self.LiquidHeatCapacity
+                    return self.LiquidSpecificHeat
             if self.SolidContent == 1:
-                return self.SolidHeatCapacity
+                return self.SolidSpecificHeat
         else:
             return el.Laliberte_heat_capacity(self.Temperature, self._MassFractions, self._CAS)
 
@@ -545,7 +617,7 @@ class thermoFlowStream:
         return self.ElementMolarFractions.keys()
     @property
     def MolarMasses(self):
-        if self._wi is None:
+        if self.wi is None:
             values = mix(self._Components, zs=self.MolarFractions,
                        T=self.Temperature, P=self.Pressure).MWs
             return OrderedDict(zip(self._Components, values))

@@ -1,16 +1,70 @@
 """Module that contains all of the most common Unit Operations used in Process Industries"""
 
 
+import time
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import animation
 from collections import Counter
-from Material import thermoFlowStream
-
+#from thermoChemical import *
+from Chemical import *
 from Geometry import *
 from Correlation import *
 
 
-#region BATCH OPERATIONS
+#region FLUIDS
+
+class Hopper:
+    def __init__(self, max_volume):
+        self.MaxVolume = max_volume
+        self.Inlets = []
+        self.OutletVolumeFlow = 0
+        self.Volume = 0
+
+    def NextVolume(self, dt):
+        IN = 0
+        for i in self.Inlets:
+            IN += i.VolumeFlow
+        OUT = self.OutletVolumeFlow
+        V = (IN - OUT) * dt + self.Volume
+        self.Volume = V
+        return V
+    
+    def NextMixture(self, dt):
+        c = Mixer().OutletComponents(self.Inlets)
+        wi = Mixer().OutletFractions(self.Inlets)
+        M = Mixture(c)
+        M.V = self.NextVolume(dt)
+        M.MassFractions = wi
+        M.Temperature = Mixer().OutletTemperature(self.Inlets)
+        # M.Pressure = ...
+        return M
+
+    def OutletStream(self, dt):
+        O = Stream(self.NextMixture(dt))
+        O.VolumeFlow = self.OutletVolumeFlow
+        return O
+
+    def Draw(self, dt):
+        # Tank #
+        plt.ion()
+        D = 1
+        H = 1
+        D_list = [-D / 2, -D / 2, +D / 2, +D / 2]
+        H_list = [H, 0, 0, H]
+        plt.plot(D_list, H_list, color='black')
+        # Liquid #
+        h = self.NextVolume(dt) / self.MaxVolume
+        h_list = [h, 0, 0, h]
+        plt.stackplot(D_list, h_list)
+        plt.plot()
+        plt.show()
+        #plt.pause(0.1)
+        time.sleep(0.01)
+        plt.draw()
+        plt.clf()
+        return None
+
 
 class cylTank:
     def __init__(self, tank_diameter, tank_height, cone_angle=0.0):
@@ -304,12 +358,13 @@ class batchRectifier:
         self.Pressure = pressure
         self.dx = dx
 
-#endregion
-
-#region CONTINUOUS OPERATIONS
 
 class Splitter:
-    def __init__(self, outlet_fractions):
+    def __init__(self, outlet_fractions, thermo=False):
+        if thermo is True:
+            from thermoChemical import Stream
+        else:
+            from Chemical import Stream
         self.NumberOfOutlets = len(outlet_fractions)
         self.OutletFractions = outlet_fractions
 
@@ -317,8 +372,15 @@ class Splitter:
         return [inlet.MassFlow * wi for wi in self.OutletFractions]
 
     def OutletStreams(self, inlet):
-        return [thermoFlowStream(components=inlet.Components, wi=inlet.MassFractions,
-                           Mf=Fi, T=inlet.Temperature, P=inlet.Pressure, electrolyte=inlet.isElectrolyte) for Fi in self.OutletFlows(inlet)]
+        o_list = [Stream(inlet.Components) for Fi in self.OutletFlows(inlet)]
+        for i,o in enumerate(o_list):
+            o.Components = inlet.Components
+            o.isElectrolyte = inlet.isElectrolyte
+            o.wi = inlet.MassFractions
+            o.Mf = self.OutletFlows(inlet)[i]
+            o.Temperature = inlet.Temperature
+            o.Pressure = inlet.Pressure
+        return o_list
 
 
 class Mixer:
@@ -355,35 +417,29 @@ class Mixer:
     def OutletFractions(self, inlets):
         return [mi/self.OutletFlow(inlets) for mi in self.MassBalance(inlets).values()]
 
-    def OutletHeatCapacity(self, inlets):
+    def OutletSpecificHeat(self, inlets):
         Cpo = 0
         for i, I in enumerate(inlets):
-            Cpo += self.InletFractions(inlets)[i] * I.HeatCapacity
+            Cpo += self.InletFractions(inlets)[i] * I.SpecificHeat
         return Cpo
 
-    def OutletTemperature(self, inlets):    # TODO: review energy balance
-        H_in = 0
+    def OutletTemperature(self, inlets):
+        num = 0
+        den = 0
         for I in inlets:
-            H_in += I.MassFlow * I.HeatCapacity * I.Temperature
-        To = H_in / (self.OutletFlow(inlets) * self.OutletHeatCapacity(inlets))
-        T = To
-        # while self._Error > self._Tolerance:
-        #     Cp = thermoFlowStream(components=self.OutletComponents(inlets), wi=self.OutletMassFractions(inlets),
-        #                     Mf=self.OutletFlow(inlets), T=T,
-        #                     electrolyte=self._isElectrolyte(inlets)).HeatCapacity
-        #     H = thermoFlowStream(components=self.OutletComponents(inlets), wi=self.OutletMassFractions(inlets),
-        #                     Mf=self.OutletFlow(inlets), T=T,
-        #                     electrolyte=self._isElectrolyte(inlets)).Enthalpy*self.OutletFlow(inlets)
-        #     T = E_in / (self.OutletFlow(inlets) * Cp)
-        #     self._Error = (T - To)**2
+            num += I.MassFlow * I.SpecificHeat * I.Temperature
+            den += I.MassFlow * I.SpecificHeat 
+        T = num / den
         return T
 
     def OutletStream(self, inlets):
-        return thermoFlowStream(components=self.OutletComponents(inlets), wi=self.OutletFractions(inlets),
-                          Mf=self.OutletFlow(inlets), T=self.OutletTemperature(inlets),
-                          electrolyte=self._isElectrolyte(inlets))
-
-# HIDDEN METHODS
+        O = Stream(self.OutletComponents(inlets))
+        O.isElectrolyte = self._isElectrolyte(inlets)
+        O.wi = self.OutletFractions(inlets)
+        O.Mf = self.OutletFlow(inlets)
+        O.Temperature = self.OutletTemperature(inlets)
+        # O.Pressure = ...
+        return O
 
     def _isElectrolyte(self, inlets):
         for I in inlets:
@@ -448,12 +504,12 @@ class shellHX:
     def Q(self, fluid1, fluid2):
         if self._Th2 is None:
             mc = self.ColdFluid(fluid1,fluid2).MassFlow
-            Cpc = self.ColdFluid(fluid1,fluid2).HeatCapacity
+            Cpc = self.ColdFluid(fluid1,fluid2).SpecificHeat
             Tc1 = self.ColdFluid(fluid1,fluid2).Temperature
             Q = mc * Cpc * (self._Tc2 - Tc1)
         else:
             mh = self.HotFluid(fluid1, fluid2).MassFlow
-            Cph = self.HotFluid(fluid1, fluid2).HeatCapacity
+            Cph = self.HotFluid(fluid1, fluid2).SpecificHeat
             Th1 = self.HotFluid(fluid1, fluid2).Temperature
             Q = mh * Cph * (Th1 - self._Th2)
         return Q
@@ -461,7 +517,7 @@ class shellHX:
     def Tc2(self, fluid1, fluid2):
         if self._Tc2 is None:
             mc = self.ColdFluid(fluid1,fluid2).MassFlow
-            Cpc = self.ColdFluid(fluid1, fluid2).HeatCapacity
+            Cpc = self.ColdFluid(fluid1, fluid2).SpecificHeat
             Tc1 = self.ColdFluid(fluid1, fluid2).Temperature
             Tc2 = Tc1 + self.Q(fluid1, fluid2)/(mc*Cpc)
         else:
@@ -470,7 +526,7 @@ class shellHX:
     def Th2(self, fluid1, fluid2):
         if self._Th2 is None:
             mh = self.HotFluid(fluid1,fluid2).MassFlow
-            Cph = self.HotFluid(fluid1, fluid2).HeatCapacity
+            Cph = self.HotFluid(fluid1, fluid2).SpecificHeat
             Th1 = self.HotFluid(fluid1,fluid2).Temperature
             Th2 = Th1 - self.Q(fluid1,fluid2)/(mh*Cph)
         else:
@@ -569,27 +625,35 @@ class shellHX:
     # def Tc2real(self, fluid1, fluid2):
     #     Qo = self.Qo(fluid1, fluid2)
     #     mc = self.ColdFluid(fluid1, fluid2).MassFlow
-    #     Cpc = self.ColdFluid(fluid1, fluid2).HeatCapacity
+    #     Cpc = self.ColdFluid(fluid1, fluid2).SpecificHeat
     #     Tc1 = min([fluid1.Temperature, fluid2.Temperature])
     #     Tc2 = Tc1 + Qo/(mc*Cpc)
     #     return Tc2
     # def Th2real(self, fluid1, fluid2):
     #     Qo = self.Qo(fluid1, fluid2)
     #     mh = self.HotFluid(fluid1, fluid2).MassFlow
-    #     Cph = self.HotFluid(fluid1, fluid2).HeatCapacity
+    #     Cph = self.HotFluid(fluid1, fluid2).SpecificHeat
     #     Th1 = max([fluid1.Temperature, fluid2.Temperature])
     #     Th2 = Th1 - Qo/(mh*Cph)
     #     return Th2
 
     def HeatedFluidStream(self, fluid1, fluid2):
         f = self.ColdFluid(fluid1, fluid2)
-        return thermoFlowStream(f.Components, wi=f.MassFractions,
-                          Mf=f.MassFlow, T=self.Tc2(fluid1, fluid2))
+        hf = Stream(f.Components)
+        hf.wi = f.MassFractions
+        hf.Mf = f.MassFlow
+        hf.Temperature = self.Tc2(fluid1,fluid2)
+        hf.Pressure = f.Pressure
+        return hf
 
     def CooledFluidStream(self, fluid1, fluid2):
         f = self.HotFluid(fluid1, fluid2)
-        return thermoFlowStream(f.Components, wi=f.MassFractions,
-                          Mf=f.MassFlow, T=self.Th2(fluid1, fluid2))
+        cf = Stream(f.Components)
+        cf.wi = f.MassFractions
+        cf.Mf = f.MassFlow
+        cf.Temperature = self.Th2(fluid1,fluid2)
+        cf.Pressure = f.Pressure
+        return cf
 
 
 class plateHX:
@@ -629,12 +693,12 @@ class plateHX:
     def Q(self, fluid1, fluid2):
         if self.phase_change is False:
             mc = self.ColdFluid(fluid1,fluid2).MassFlow
-            Cpc = self.ColdFluid(fluid1,fluid2).HeatCapacity
+            Cpc = self.ColdFluid(fluid1,fluid2).SpecificHeat
             Tc1 = self.ColdFluid(fluid1,fluid2).Temperature
             Q = mc * Cpc * (self.Tc2 - Tc1)
         else:
             mh = self.HotFluid(fluid1, fluid2).MassFlow
-            #Cph = self.HotFluid(fluid1, fluid2).HeatCapacity
+            #Cph = self.HotFluid(fluid1, fluid2).SpecificHeat
             #Th1 = self.HotFluid(fluid1, fluid2).Temperature
             #Q = mh * Cph * (Th1 - self.Th2)
             dHvs = self.HotFluid(fluid1, fluid2).Hvaps.values()
@@ -711,13 +775,21 @@ class plateHX:
 
     def HeatedFluidStream(self, fluid1, fluid2):
         f = self.ColdFluid(fluid1, fluid2)
-        return thermoFlowStream(f.Components, wi=f.MassFractions,
-                          Mf=f.MassFlow, T=self.Tc2(fluid1, fluid2))
+        hf = Stream(f.Components)
+        hf.wi = f.MassFractions
+        hf.Mf = f.MassFlow
+        hf.Temperature = self.Tc2(fluid1,fluid2)
+        hf.Pressure = f.Pressure
+        return hf
 
     def CooledFluidStream(self, fluid1, fluid2):
         f = self.HotFluid(fluid1, fluid2)
-        return thermoFlowStream(f.Components, wi=f.MassFractions,
-                          Mf=f.MassFlow, T=self.Th2(fluid1, fluid2))
+        cf = Stream(f.Components)
+        cf.wi = f.MassFractions
+        cf.Mf = f.MassFlow
+        cf.Temperature = self.Th2(fluid1,fluid2)
+        cf.Pressure = f.Pressure
+        return cf
 
 
 class Flash:
@@ -778,14 +850,24 @@ class Flash:
         return xi
 
     def VaporOutletStream(self, inlet):
-        return thermoFlowStream(inlet.Components, zi=self.yi(inlet), Nf=self.VaporFlow(inlet),
-                          T=inlet.Temperature, P=self.Pressure)
+        VO = Stream(inlet.Components)
+        VO.zi = self.yi(inlet)
+        VO.Nf = self.VaporFlow(inlet)
+        VO.Temperature = inlet.Temperature
+        VO.Pressure = self.Pressure
+        return VO
 
     def LiquidOutletStream(self, inlet):
-        return thermoFlowStream(inlet.Components, zi=self.xi(inlet), Nf=self.LiquidFlow(inlet),
-                          T=inlet.Temperature, P=self.Pressure)
+        LO = Stream(inlet.Components)
+        LO.zi = self.xi(inlet)
+        LO.Nf = self.LiquidFlow(inlet)
+        LO.Temperature = inlet.Temperature
+        LO.Pressure = self.Pressure
+        return LO
 
-# SOLID-PHASE #
+#endregion
+
+#region SOLID/FLUID
 
 class Mill:
     def __init__(self, power=None, outlet_particle_size=None, dry_grinding=False):
@@ -840,7 +922,10 @@ class Mill:
             return self._d2
 
     def OutletStream(self, inlet, n, K):
-        O = thermoFlowStream(inlet.Components, wi=inlet.MassFractions, T=inlet.Temperature)
+        O = Stream(inlet.Components)
+        O.wi = inlet.MassFractions
+        O.Temperature = inlet.Temperature
+        O.Pressure = inlet.Pressure
         O.ParticleSize = self.OutletParticleSize(inlet, n, K)
         return O
 
@@ -895,15 +980,24 @@ class Electrostatic:
         totalflow = gasflow + solidflow
         gf = [gf / totalflow for gf in gasflows]
         sf = [sf / totalflow for sf in solidflows]
-        return thermoFlowStream(inlet.Components, wi=gf + sf, Mf=totalflow,
-                          T=inlet.Temperature, P=inlet.Pressure)
+        GO = Stream(inlet.Components)
+        GO.wi = gf + sf
+        GO.Mf = totalflow
+        GO.Temperature = inlet.Temperature
+        GO.Pressure = inlet.Pressure
+        return GO
 
     def SolidOutletStream(self, inlet):
         solidflow = self.Efficiency(inlet) * inlet.MassFlow * inlet.SolidContent
         solidflows = [solidflow * wi for wi in inlet.SolidFractions]
         sf = [sf / solidflow for sf in solidflows]
-        return thermoFlowStream(inlet.SolidComponents, wi=sf, Mf=solidflow,
-                          T=inlet.Temperature, P=inlet.Pressure)
+        SO = Stream(inlet.SolidComponents)
+        SO.wi = sf
+        SO.Mf = solidflow
+        SO.Temperature = inlet.Temperature
+        SO.Pressure = inlet.Pressure
+        SO.ParticleSize = inlet.ParticleSize
+        return SO
 
 
 class Cyclone:
@@ -939,17 +1033,26 @@ class Cyclone:
         return inlet.MassFlow - self.UnderFlow(inlet)
 
     def UnderFlowStream(self, inlet):
-        return thermoFlowStream(components=inlet.SolidComponents, wi=inlet.SolidFractions,
-                          Mf=self.UnderFlow(inlet), T=inlet.Temperature, P=inlet.Pressure)
-
+        U = Stream(inlet.SolidComponents)
+        U.wi = inlet.SolidFractions
+        U.Mf = self.UnderFlow(inlet)
+        U.Temperature = inlet.Temperature
+        U.Pressure = inlet.Pressure
+        U.ParticleSize = inlet.ParticleSize
+        return U
+        
     def OverFlowStream(self, inlet):
         gf = [wfi * inlet.GasContent * (inlet.MassFlow / self.OverFlow(inlet))
               for wfi in inlet.GasFractions]
         sf = [wsi * inlet.SolidContent * (inlet.MassFlow / self.OverFlow(inlet)) * (1 - self.Efficiency(inlet))
               for wsi in inlet.SolidFractions]
-        return thermoFlowStream(components=(inlet.GasComponents + inlet.SolidComponents), wi=gf + sf,
-                          Mf=self.OverFlow(inlet), T=inlet.Temperature, P=inlet.Pressure)
-
+        O = Stream(inlet.GasComponents + inlet.SolidComponents)
+        O.wi = gf + sf
+        O.Mf = self.OverFlow(inlet)
+        O.Temperature = inlet.Temperature
+        O.Pressure = inlet.Pressure
+        O.ParticleSize = inlet.ParticleSize
+        return O
 
 class Hydrocyclone:
     def __init__(self, Dc=None, d50=None):
@@ -980,19 +1083,28 @@ class Hydrocyclone:
         return inlet.MassFlow - self.UnderFlow(inlet)
 
     def UnderFlowStream(self, inlet):
-        return thermoFlowStream(components=inlet.SolidComponents, wi=inlet.SolidFractions,
-                          Mf=self.UnderFlow(inlet), T=inlet.Temperature, P=inlet.Pressure)
+        U = Stream(inlet.SolidComponents)
+        U.wi = inlet.SolidFractions
+        U.Mf = self.UnderFlow(inlet)
+        U.Temperature = inlet.Temperature
+        U.Pressure = inlet.Pressure
+        U.ParticleSize = inlet.ParticleSize
+        return U
 
     def OverFlowStream(self, inlet):
         lf = [wfi * inlet.LiquidContent * (inlet.MassFlow / self.OverFlow(inlet))
               for wfi in inlet.LiquidFractions]
         sf = [wsi * inlet.SolidContent * (inlet.MassFlow / self.OverFlow(inlet)) * (1 - self.Efficiency(inlet))
               for wsi in inlet.SolidFractions]
-        return thermoFlowStream(components=(inlet.LiquidComponents + inlet.SolidComponents), wi=lf + sf,
-                          Mf=self.OverFlow(inlet), T=inlet.Temperature, P=inlet.Pressure)
+        O = Stream(inlet.LiquidComponents + inlet.SolidComponents)
+        O.wi = lf + sf
+        O.Mf = self.OverFlow(inlet)
+        O.Temperature = inlet.Temperature
+        O.Pressure = inlet.Pressure
+        O.ParticleSize = inlet.ParticleSize
+        return O
 
-
-class Venturi:
+class Scrubber:
     def __init__(self, number_of_nozzles, nozzle_diameter, throat_diameter):
         self.NumberOfNozzles = number_of_nozzles
         self.NozzleDiameter = nozzle_diameter
@@ -1059,8 +1171,13 @@ class Venturi:
         totalflow = gasflow + solidflow
         gf = [gf / totalflow for gf in gasflows]
         sf = [sf / totalflow for sf in solidflows]
-        return thermoFlowStream(gas_inlet.Components, wi=gf + sf, Mf=totalflow,
-                          T=self.OutletTemperature(gas_inlet, liquid_inlet), P=gas_inlet.Pressure)
+        GO = Stream(gas_inlet.Components)
+        GO.wi = gf + sf
+        GO.Mf = totalflow
+        GO.Temperature = self.OutletTemperature(gas_inlet, liquid_inlet)
+        GO.Pressure = gas_inlet.Pressure
+        GO.ParticleSize = gas_inlet.ParticleSize
+        return GO
 
     def LiquidOutletStream(self, gas_inlet, liquid_inlet):
         liquidflow = liquid_inlet.MassFlow
@@ -1070,8 +1187,13 @@ class Venturi:
         totalflow = liquidflow + solidflow
         lf = [lf / totalflow for lf in liquidflows]
         sf = [sf / totalflow for sf in solidflows]
-        return thermoFlowStream(liquid_inlet.Components + gas_inlet.SolidComponents, wi=lf + sf, Mf=totalflow,
-                          T=self.OutletTemperature(gas_inlet, liquid_inlet))
+        LO = Stream(liquid_inlet.Components + gas_inlet.SolidComponents)
+        LO.wi = lf + sf
+        LO.Mf = totalflow
+        LO.Temperature = self.OutletTemperature(gas_inlet, liquid_inlet)
+        LO.Pressure = liquid_inlet.Pressure
+        LO.ParticleSize = gas_inlet.ParticleSize
+        return LO
 
 
 class Decanter:
@@ -1119,13 +1241,21 @@ class Decanter:
         return Rh
 
     def OverFlowStream(self, inlet):
-        return thermoFlowStream(inlet.LiquidComponents, wi=[inlet.LiquidComponents],
-                          Mf=inlet.LiquidContent * inlet.MassFlow,
-                          T=inlet.Temperature, P=inlet.Pressure)
+        O = Stream(inlet.LiquidComponents)
+        O.wi = inlet.LiquidFractions
+        O.Mf = inlet.LiquidContent * inlet.MassFlow
+        O.Temperature = inlet.Temperature
+        O.Pressure = inlet.Pressure
+        return O
 
     def UnderFlowStream(self, inlet):
-        return thermoFlowStream(inlet.SolidComponents, wi=[inlet.SolidComponents], Mf=inlet.SolidContent * inlet.MassFlow,
-                          T=inlet.Temperature, P=inlet.Pressure)
+        U = Stream(inlet.SolidComponents)
+        U.wi = inlet.SolidFractions
+        U.Mf = inlet.SolidContent * inlet.MassFlow
+        U.Temperature = inlet.Temperature
+        U.Pressure = inlet.Pressure
+        U.ParticleSize = inlet.ParticleSize
+        return U
 
     def FlowType(self, inlet, porosity):
         Reynolds = inlet.LiquidDensity * self.HorizontalVelocity(inlet, porosity) * self.HydraulicRadius(inlet,

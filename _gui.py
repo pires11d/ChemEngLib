@@ -7,7 +7,7 @@ from UnitOp import *
 
 
 #region STREAM
-water = thermoFlowStream(['water'], wi=[1.0], Mf=1.0, T=25+273)
+water = thermoStream(['water'], wi=[1.0], Mf=1.0, T=25+273)
 #endregion
 
 
