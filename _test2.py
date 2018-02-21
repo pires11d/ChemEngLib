@@ -1,5 +1,6 @@
 from Chemical import Substance, Mixture, Stream
-
+from matplotlib import animation
+import matplotlib.pyplot as plt
 
 s = Substance('solvent')
 s.Density0 = 680.0
@@ -17,16 +18,37 @@ m = Mixture([s,o])
 m.wi = [0.5,0.5]
 
 st1 = Stream(m)
-st1.Mf = 1.0
+st1.Vf = 1.0
 st2 = Stream(m)
-st2.Mf = 2.0
+st2.Vf = 2.0
+
 
 from UnitOp import Hopper, Mixer
-
-dt = 0.1
 h = Hopper(100)
+h.Volume = h.MaxVolume / 2
+h.Inlets = [st1,st2]
+h.OutletVolumeFlow = 1
 
-while 1<2:
-    h.Inlets = [st1,st2]
-    h.OutletVolumeFlow = 0.1
-    h.Draw(dt)
+#region ANIMATION
+
+# Canvas #
+fig = plt.figure()
+fig.set_dpi(100)
+fig.set_size_inches(5,5)
+ax = plt.axes(xlim=(-1, 1), ylim=(0, 2))
+
+def init():
+    ax.add_patch(h.Contour())
+    return h.Contour(),
+
+def animate(i):
+    h.NextVolume()
+    patch = h.Liquid()
+    ax.add_patch(patch)
+    return patch,
+
+# Function Call #
+anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
+plt.show()
+
+#endregion

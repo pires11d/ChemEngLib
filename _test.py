@@ -13,31 +13,72 @@ from thermoChemical import *
 
 #region FLOW STREAMS
 
-air = thermoStream(['N2', 'O2'], wi=[0.7, 0.3], Vfo=0.007, T=300.0)
-gas = thermoStream(['N2', 'H2'], zi=[0.9, 0.1], Vfo=0.007, T=400.0)
+air = Stream(['N2', 'O2'])
+air.wi = [0.7, 0.3]
+air.Vfo = 0.007
+air.Temperature = 300.0
 
-water = thermoStream(['water'], wi=[1.0], Mf=1.0, T=25+273)
-water2 = thermoStream(['water'], wi=[1.0], Mf=1.0, T=95+273)
-water3 = thermoStream(['water'], wi=[1.0], Mf=1.0, T=100+273)
+gas = Stream(['N2', 'H2'])
+gas.zi = [0.9, 0.1]
+gas.Vfo = 0.007
+gas.Temperature = 400.0
 
-brine = thermoStream(['water', 'NaCl'], wi=[0.9, 0.1], Mf=2.0, electrolyte=True, T=300.0)
-acid = thermoStream(['water', 'hcl'], wi=[0.8, 0.1, 0.1], Mf=1.0, electrolyte=True, T=320.0)
-liquor = thermoStream(['water', 'hcl', 'FeCl2'], wi=[0.7, 0.2, 0.1], Mf=1.0, electrolyte=True, T=320.0)
-feed = thermoStream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=1.0, T=354.0)
-mix = thermoStream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=345.0)
+water = Stream(['water'])
+water.wi=[1.0]
+water.Mf=1.0
+water.Temperature=25+273
 
-oxide = thermoStream(['Fe2O3', 'FeCl2'], wi=[0.9, 0.1], Mf=5.0)
-iron = thermoStream(['iron'], wi=[1.0], Mf=Mass(100).ton/3600.0)
+water2 = Stream(['water'])
+water2.wi=[1.0]
+water2.Mf=1.0
+water2.Temperature=95+273
+
+brine = Stream(['water', 'NaCl'])
+brine.wi=[0.9, 0.1]
+brine.Mf=2.0
+brine.Temperature=300.0
+brine.isElectrolyte=True
+
+acid = Stream(['water', 'hcl'])
+acid.wi=[0.8, 0.1, 0.1]
+acid.Mf=1.0
+acid.Temperature=320.0
+acid.isElectrolyte=True
+
+liquor = Stream(['water', 'hcl', 'FeCl2'])
+liquor.wi=[0.7, 0.2, 0.1]
+liquor.Mf=1.0
+liquor.Temperature=320.0
+liquor.isElectrolyte=True
+
+feed = Stream(['ethanol', 'water'])
+feed.zi=[0.5, 0.5]
+feed.Nf=1.0
+feed.Temperature=354.0
+
+oxide = Stream(['Fe2O3', 'FeCl2'])
+oxide.wi=[0.9, 0.1]
+oxide.Mf=5.0
+
+iron = Stream(['iron'])
+iron.wi=[1.0]
+iron.Mf=Mass(100).ton/3600.0
 iron.ParticleSize = 100e-3
 
-G1 = thermoStream(['N2', 'O2', 'aluminum', 'iron'], wi=[0.7, 0.20, 0.06, 0.04], Vf=0.033)
+G1 = Stream(['N2', 'O2', 'aluminum', 'iron'])
+G1.wi = [0.7, 0.20, 0.06, 0.04]
+G1.Vf = 0.033
 G1.ParticleSize = 0.5e-6
 G1.ParticleCharge = Energy(10).eV
 
-L1 = thermoStream(['water', 'sodium sulphate'], wi=[0.8, 0.2], Vf=0.25)
+L1 = Stream(['water', 'sodium sulphate'])
+L1.wi = [0.8, 0.2]
+L1.Vf = 0.25
 L1.ParticleSize = 2e-3
 
-GL = thermoStream(['water', 'N2', 'O2'], wi=[0.25, 0.50, 0.25], Mf=1.0)
+GL = Stream(['water', 'N2', 'O2'])
+GL.wi = [0.25, 0.50, 0.25]
+GL.Mf=1.0
 
 #endregion
 
@@ -61,13 +102,13 @@ cy = Hydrocyclone(Dc=0.16)
 # print "efficiency ", cy.Efficiency(F1)
 # print "cyclone diameter", cy.CycloneDiameter(F1)
 # print cy.OverFlowFluidFractions(F2), cy.OverFlowSolidFractions(F2)
-# print cy.UnderthermoStream(F2).MassFractions
-# print cy.OverthermoStream(F2).MassFractions
+# print cy.UnderFlowStream(F2).MassFractions
+# print cy.OverFlowStream(F2).MassFractions
 
 sp = Splitter(outlet_fractions=[0.2, 0.8])
 # print sp.OutletFlows(acid)
 # print sp.NumberOfOutlets
-# Fi = sp.OutletthermoStreams(acid)
+# Fi = sp.OutletFlowStreams(acid)
 # print Fi[0].MassFlow
 
 mi = Mixer()
@@ -115,8 +156,8 @@ dc = Decanter(height=4.5)
 # print(dc.Length(L1, 0.8))
 # print(dc.Volume(L1,0.8))
 # print(dc.HorizontalVelocity(L1,0.8))
-# print(dc.OverthermoStream(L1).Components)
-# print(dc.UnderthermoStream(L1).Components)
+# print(dc.OverFlowStream(L1).Components)
+# print(dc.UnderFlowStream(L1).Components)
 # print(dc.HydraulicRadius(L1, 0.8))
 # dc.FlowType(L1,0.8)
 
@@ -209,14 +250,22 @@ esp = Electrostatic(length=6, height=3, electric_field=50000, number_of_plates=2
 
 #region PLOTS
 
-mixx = thermoStream(['heptane', 'hexane'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx2 = thermoStream(['toluene', 'benzene'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx3 = thermoStream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx4 = thermoStream(['ethanol', '1-propanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx5 = thermoStream(['ethanol', '2-propanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx6 = thermoStream(['ethanol', 'butanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixx7 = thermoStream(['methanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
-mixxx = thermoStream(['chloroform', 'ether', 'ethanol'], zi=[0.5, 0.2, 0.3], Nf=0.0, T=298.0)
+mixx = Stream(['heptane', 'hexane'])
+mixx.zi=[0.5, 0.5]
+mixx.Nf=0.0
+mixx.T=298.0
+
+mixx2 = Stream(['toluene', 'benzene'])
+mixx2.zi=[0.5, 0.5]
+mixx2.Nf=0.0
+mixx2.T=298.0
+
+# mixx3 = Stream(['ethanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+# mixx4 = Stream(['ethanol', '1-propanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+# mixx5 = Stream(['ethanol', '2-propanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+# mixx6 = Stream(['ethanol', 'butanol'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+# mixx7 = Stream(['methanol', 'water'], zi=[0.5, 0.5], Nf=0.0, T=298.0)
+# mixxx = Stream(['chloroform', 'ether', 'ethanol'], zi=[0.5, 0.2, 0.3], Nf=0.0, T=298.0)
 
 def Txy(binary_mixture, P=101325, x1=True):
     binary_mixture.Pressure = P

@@ -16,54 +16,52 @@ from Correlation import *
 
 class Hopper:
     def __init__(self, max_volume):
+        self.dt = 0.1
         self.MaxVolume = max_volume
+        self.Height = 1.0
+        self.Width = 1.0
         self.Inlets = []
         self.OutletVolumeFlow = 0
         self.Volume = 0
-
-    def NextVolume(self, dt):
+        
+    def NextVolume(self):
         IN = 0
         for i in self.Inlets:
             IN += i.VolumeFlow
         OUT = self.OutletVolumeFlow
-        V = (IN - OUT) * dt + self.Volume
+        V = (IN - OUT) * self.dt + self.Volume
         self.Volume = V
         return V
     
-    def NextMixture(self, dt):
+    def NextMixture(self):
         c = Mixer().OutletComponents(self.Inlets)
         wi = Mixer().OutletFractions(self.Inlets)
         M = Mixture(c)
-        M.V = self.NextVolume(dt)
+        M.V = self.NextVolume()
         M.MassFractions = wi
         M.Temperature = Mixer().OutletTemperature(self.Inlets)
         # M.Pressure = ...
         return M
 
-    def OutletStream(self, dt):
-        O = Stream(self.NextMixture(dt))
+    def OutletStream(self):
+        O = Stream(self.NextMixture())
         O.VolumeFlow = self.OutletVolumeFlow
         return O
 
-    def Draw(self, dt):
-        # Tank #
-        plt.ion()
-        D = 1
-        H = 1
-        D_list = [-D / 2, -D / 2, +D / 2, +D / 2]
-        H_list = [H, 0, 0, H]
-        plt.plot(D_list, H_list, color='black')
-        # Liquid #
-        h = self.NextVolume(dt) / self.MaxVolume
-        h_list = [h, 0, 0, h]
-        plt.stackplot(D_list, h_list)
-        plt.plot()
-        plt.show()
-        #plt.pause(0.1)
-        time.sleep(0.01)
-        plt.draw()
-        plt.clf()
-        return None
+    def Liquid(self):
+        H = self.Height
+        W = self.Width
+        h = H * self.NextVolume() / self.MaxVolume
+        points = [[-W/2,0],[-W/2,h],[+W/2,h],[+W/2,0]]
+        patch = plt.Polygon(points, closed=True, fill=True, color='red')
+        return patch
+    
+    def Contour(self):
+        H = self.Height
+        W = self.Width
+        points = [[-W/2,0],[-W/2,H],[+W/2,H],[+W/2,0]]
+        patch = plt.Polygon(points, closed=None, fill=None)
+        return patch
 
 
 class cylTank:
