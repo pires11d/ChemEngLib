@@ -53,7 +53,7 @@ class Mixture:
     @property
     def MolarMass(self):
         MM = 0
-        # TODO: Rever equação
+        # TODO: Rever
         for i,MMi in enumerate(self.MolarMasses.values()):
             MM += self.MolarFractions[i] * MMi
         return MM
