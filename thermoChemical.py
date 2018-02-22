@@ -13,21 +13,31 @@ from thermo import UNIFAC
 
 class Mixture:
     def __init__(self, components):
+        # Mixture attributes #
         self.Components = components
+        self.ComponentNames = self.Components
         self.Temperature = 298.15
         self.Pressure = 101325.0
-        self.isElectrolyte = False
-        
         self.wi = None
         self.zi = None
-        self.vi = None
         self.M = None
         self.V = None
         self.N = None
+       # Other attributes #
+        self._To = 273.15
+        self._Po = 101325.0
+        self.isElectrolyte = False
+        self._Fe2O3 = {'CASRN': '1309-37-1', 'name': 'hematite', 'MW': 159.688, 'formula': 'Fe2O3'}
+
 
     @property
     def mixture(self):
-        return mix(self.Components, ws=self.MassFractions, T=self.Temperature, P=self.Pressure)
+        if self.wi is None:
+            return mix(self._Components, zs=self.MolarFractions,
+                       T=self.Temperature, P=self.Pressure)
+        else:
+            return mix(self._Components, ws=self.MassFractions,
+                       T=self.Temperature, P=self.Pressure)
     @property
     def CAS(self):
         return self.mixture.CASs
@@ -37,144 +47,6 @@ class Mixture:
     @property
     def MolarMasses(self):
         return OrderedDict(zip(self.Components,self.mixture.MWs))
-    @property
-    def Phase(self):
-        return self.mixture.phase
-    @property
-    def Density(self):
-        if self.isElectrolyte is False:
-            return self.mixture.rho
-        else:
-            return el.Laliberte_density(self.Temperature, self._MassFractions, self._CAS)
-    @property
-    def SpecificHeat(self):
-        if self.isElectrolyte is False:
-            return self.mixture.Cp
-        else:
-            return el.Laliberte_heat_capacity(self.Temperature, self._MassFractions, self._CAS)
-    @property
-    def Viscosity(self):
-        if self.isElectrolyte is False:
-            return self.mixture.mu
-        else:
-            return el.Laliberte_viscosity(self.Temperature, self._MassFractions, self._CAS)
-    @property
-    def Enthalpy(self):
-        return self.mixture.H
-
-    # NON-THERMO #
-
-    @property
-    def MassFractions(self):
-        wi = []
-        if self.wi is None:
-            for i, MMi in enumerate(self.MolarMasses.values()):
-                den = 0
-                num = self.MolarFractions[i] * MMi
-                for j, MMj in enumerate(self.MolarMasses.values()):
-                    den += self.MolarFractions[j] * MMj
-                wi.append(num / den)
-        else: 
-            wi = self.wi
-        return wi
-
-    @property
-    def MolarFractions(self):
-        zi = []
-        if self.zi is None:
-                for i, MMi in enumerate(self.MolarMasses.values()):
-                    den = 0
-                    num = self.MassFractions[i] / MMi
-                    for j, MMj in enumerate(self.MolarMasses.values()):
-                        den += self.MassFractions[j] / MMj
-                    zi.append(num / den)
-        else:
-            zi = self.zi
-        return zi
-
-    @property
-    def Mass(self):
-        if self.M is None:
-            if self.N is None:
-                M = self.V * self.Density
-            else:
-                M = self.N * self.MolarMass
-        else:
-            M = self.M
-        return M
-
-    @property
-    def Volume(self):
-        if self.V is None:
-            if self.N is None:
-                V = self.M / self.Density
-            else:
-                # Ideal gas #
-                V = self.N * 8.314 * self.Temperature / self.Pressure 
-        else:
-            V = self.V
-        return V
-
-    @property
-    def Moles(self):
-        if self.N is None:
-            if self.V is None:
-                N = self.M / self.MolarMass
-            else:
-                # Ideal gas #
-                N = (self.Pressure * self.V) / (8.314 * self.Temperature)
-        else:
-            N = self.N
-        return N
-
-
-    # HIDDEN METHODS #
-
-    @property
-    def _w(self):
-        for i, c in enumerate(self.Components):
-            if c == 'water':
-                return i
-    @property
-    def _CAS(self):
-        cas = list(self.CAS)
-        if len(cas) == len(self.CAS):
-            cas.remove(self.CAS[self._w])
-        return cas
-    @property
-    def _MassFractions(self):
-        mf = list(self.MassFractions)
-        if len(mf) == len(self.MassFractions):
-            mf.remove(self.MassFractions[self._w])
-        return mf
-
-
-class Stream:
-    def __init__(self, components):
-
-        self.Components = components
-        self.Temperature = 298.15
-        self.Pressure = 101325.0
-        self.isElectrolyte = False
-
-        self.wi = None
-        self.vi = None
-        self.zi = None
-        self.Mf = None
-        self.Vf = None
-        self.Vfo = None
-        self.Nf = None
-
-        self._Po = 101325.0
-        self._To = 273.15
-        self._Fe2O3 = {'CASRN': '1309-37-1', 'name': 'hematite', 'MW': 159.688, 'formula': 'Fe2O3'}
-
-        self.Tag = None
-        self.From = None
-        self.To = None
-        self.ParticleSize = None
-        self.ParticleCharge = None
-
     @property
     def Phase(self):
         if self._IronOxide is True:
@@ -196,10 +68,6 @@ class Stream:
             return mix(self._Components, ws=self.MassFractions,
                        T=self.Temperature, P=self.Pressure).phase
     @property
-    def MolarMass(self):
-        return mix(self._Components, ws=self.MassFractions,
-                   T=self.Temperature, P=self.Pressure).MW
-    @property
     def Pbubble(self):
         return mix(self._Components, ws=self.MassFractions,
                    T=self.Temperature, P=self.Pressure).Pbubble
@@ -208,40 +76,12 @@ class Stream:
         return mix(self._Components, ws=self.MassFractions,
                    T=self.Temperature, P=self.Pressure).Pdew
 
-    # TOTAL FLOW #
+        if self.isElectrolyte is False:
+            return self.mixture.mu
+        else:
+            return el.Laliberte_viscosity(self.Temperature, self._MassFractions, self._CAS)
 
-    @property
-    def MassFlow(self):
-        if self.Mf is None:
-            if self.Nf is None:
-                return self.VolumeFlow * self.Density
-            else:
-                return self.Nf * self.MolarMass
-        else:
-            return self.Mf
-    @property
-    def VolumeFlow(self):
-        if self.Vf is None:
-            if self.Vfo is None:
-                return self.Mf / self.Density
-            else:
-                return self.NormalVolumeFlow * (self._Po / self._To) * (self.Temperature / self.Pressure)
-        else:
-            return self.Vf
-    @property
-    def NormalVolumeFlow(self):
-        if self.Vfo is None:
-            return self.VolumeFlow * (self._To / self._Po) * (self.Pressure / self.Temperature)
-        else:
-            return self.Vfo
-    @property
-    def MolarFlow(self):
-        if self.Nf is None:
-            return self.MassFlow / self.MolarMass
-        else:
-            return self.Nf
-
-    # COMPONENT LISTS #
+    # Fractions #
 
     @property
     def MassFractions(self):
@@ -259,28 +99,17 @@ class Stream:
     @property
     def MolarFractions(self):
         if self.zi is None:
-            if self.vi is None:
-                zi = []
-                for i, MW in enumerate(self.MolarMasses.values()):
-                    den = 0
-                    num = self.MassFractions[i] / MW
-                    for j, mw in enumerate(self.MolarMasses.values()):
-                        den += self.MassFractions[j] / mw
-                    zi.append(num / den)
-                return zi
-            else:
-                return self.vi
+            zi = []
+            for i, MW in enumerate(self.MolarMasses.values()):
+                den = 0
+                num = self.MassFractions[i] / MW
+                for j, mw in enumerate(self.MolarMasses.values()):
+                    den += self.MassFractions[j] / mw
+                zi.append(num / den)
+            return zi
         else:
             return self.zi
-    @property
-    def VolumeFractions(self):
-        if self.Phase == 'g':
-            if self.vi is None:
-                return self.MolarFractions
-            else:
-                return self.vi
-        else:
-            return 'not a gas!'
+
     @property
     def ElementMassFractions(self):
         return mix(self._Components, ws=self.MassFractions,
@@ -290,28 +119,7 @@ class Stream:
         return mix(self._Components, ws=self.MassFractions,
                    T=self.Temperature, P=self.Pressure).atom_fractions
 
-    @property
-    def MassFlows(self):
-        return [self.MassFlow * wi for wi in self.MassFractions]
-    @property
-    def MolarFlows(self):
-        return [self.MolarFlow * zi for zi in self.MolarFractions]
-    @property
-    def VolumeFlows(self):
-        if self.Phase == 'g':
-            return [self.VolumeFlow * vi for vi in self.VolumeFractions]
-        else:
-            return 'not a gas!'
-    @property
-    def ElementMassFlows(self):
-        values = [self.MassFlow * ei for ei in self.ElementMassFractions.values()]
-        return OrderedDict(zip(self.Elements, values))
-    @property
-    def ElementMolarFlows(self):
-        values = [self.MolarFlow * ei for ei in self.ElementMolarFractions.values()]
-        return OrderedDict(zip(self.Elements, values))
-
-    # PHASE LISTS #
+    # Phase properties #
 
     @property
     def GasComponents(self):
@@ -382,7 +190,7 @@ class Stream:
                 sc += self.MassFractions[i]
         return sc
 
-    # PHYSICAL PROPERTIES #
+    # Temperature-dependent properties #
 
     @property
     def GasDensity(self):
@@ -603,11 +411,8 @@ class Stream:
         return mix(self._Components, ws=self.MassFractions,
                    T=self.Temperature, P=self.Pressure).H
 
-    # PURE COMPONENT LISTS #
+    # Pure component properties #
 
-    @property
-    def CAS(self):
-        return mix(self._Components, self.MassFractions).CASs
     @property
     def Formulas(self):
         return mix(self._Components, ws=self.MassFractions,
@@ -615,16 +420,6 @@ class Stream:
     @property
     def Elements(self):
         return self.ElementMolarFractions.keys()
-    @property
-    def MolarMasses(self):
-        if self.wi is None:
-            values = mix(self._Components, zs=self.MolarFractions,
-                       T=self.Temperature, P=self.Pressure).MWs
-            return OrderedDict(zip(self._Components, values))
-        else:
-            values = mix(self._Components, ws=self.MassFractions,
-                       T=self.Temperature, P=self.Pressure).MWs
-            return OrderedDict(zip(self._Components, values))
     @property
     def Densities(self):
         values = [che(i, T=self.Temperature, P=self.Pressure).rho for i in self._Components]
@@ -748,11 +543,11 @@ class Stream:
             Tsats_list.append(Newton(f, self.Temperature, 0.01))
         return Tsats_list
 
-    # HIDDEN PROPERTIES #
+    # Hidden properties #
 
     @property
     def _w(self):
-        for i, c in enumerate(self._Components):
+        for i, c in enumerate(self.Components):
             if c == 'water':
                 return i
     @property
@@ -767,7 +562,6 @@ class Stream:
         if len(wi) == len(self.MassFractions):
             wi.remove(self.MassFractions[self._w])
         return wi
-
     @property
     def _IronOxide(self):
         for i, s in enumerate(self.Components):
@@ -781,10 +575,98 @@ class Stream:
                 solids[i] = self._Fe2O3
         return solids
 
-    # FUNCTIONS #
+
+        zi = []
+        if self.zi is None:
+                for i, MMi in enumerate(self.MolarMasses.values()):
+                    den = 0
+                    num = self.MassFractions[i] / MMi
+                    for j, MMj in enumerate(self.MolarMasses.values()):
+                        den += self.MassFractions[j] / MMj
+                    zi.append(num / den)
+        else:
+            zi = self.zi
+        return zi
+    
+
+class Stream(Mixture):
+    def __init__(self, components):
+        # Mixture attributes #
+        self.Components = components
+        self.ComponentNames = self.Components
+        self.wi = None
+        self.zi = None
+        self.Temperature = 298.15
+        self.Pressure = 101325.0
+        self.ParticleSize = None
+        self.ParticleCharge = None
+        # Stream properties #
+        self.Tag = None
+        self.From = None
+        self.To = None
+        self.Mf = None
+        self.Vf = None
+        self.Vfo = None
+        self.Nf = None
+        # Other attributes #
+        self._To = 273.15
+        self._Po = 101325.0
+        self.isElectrolyte = False
+        self._Fe2O3 = {'CASRN': '1309-37-1', 'name': 'hematite', 'MW': 159.688, 'formula': 'Fe2O3'}
+
+
+    @property
+    def MassFlow(self):
+        if self.Mf is None:
+            if self.Nf is None:
+                return self.VolumeFlow * self.Density
+            else:
+                return self.Nf * self.MolarMass
+        else:
+            return self.Mf
+    @property
+    def VolumeFlow(self):
+        if self.Vf is None:
+            if self.Vfo is None:
+                return self.Mf / self.Density
+            else:
+                return self.NormalVolumeFlow * (self._Po / self._To) * (self.Temperature / self.Pressure)
+        else:
+            return self.Vf
+    @property
+    def NormalVolumeFlow(self):
+        if self.Vfo is None:
+            return self.VolumeFlow * (self._To / self._Po) * (self.Pressure / self.Temperature)
+        else:
+            return self.Vfo
+    @property
+    def MolarFlow(self):
+        if self.Nf is None:
+            return self.MassFlow / self.MolarMass
+        else:
+            return self.Nf
+
+    @property
+    def MassFlows(self):
+        return [self.MassFlow * wi for wi in self.MassFractions]
+    @property
+    def MolarFlows(self):
+        return [self.MolarFlow * zi for zi in self.MolarFractions]
+    @property
+    def VolumeFlows(self):
+        if self.Phase == 'g':
+            return [self.VolumeFlow * zi for zi in self.MolarFractions]
+        else:
+            return 'not a gas!'
+    @property
+    def ElementMassFlows(self):
+        values = [self.MassFlow * ei for ei in self.ElementMassFractions.values()]
+        return OrderedDict(zip(self.Elements, values))
+    @property
+    def ElementMolarFlows(self):
+        values = [self.MassFlow * ei for ei in self.ElementMolarFractions.values()]
+        return OrderedDict(zip(self.Elements, values))
+    
 
     def Velocity(self, diameter):
         return self.VolumeFlow / Circle(diameter).Area
-
-
-

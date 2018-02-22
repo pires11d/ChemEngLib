@@ -16,21 +16,23 @@ class Substance:
         self.SpecificHeat0 = None
         self.Diffusivity0 = None
 
-    def Density(self, T=298.15):
+    @property
+    def Density(self):
         return self.Density0
-
-    def Viscosity(self, T=298.15):
+    @property
+    def Viscosity(self):
         return self.Viscosity0
-
-    def SpecificHeat(self, T=298.15):
+    @property
+    def SpecificHeat(self):
         return self.SpecificHeat0
-
-    def Diffusivity(self, T=298.15):
+    @property
+    def Diffusivity(self):
         return self.Diffusivity0
 
 
 class Mixture:
     def __init__(self, components):
+        # Mixture attributes #
         self.Components = components
         self.ComponentNames = [c.Name for c in self.Components]
         self.wi = None
@@ -40,9 +42,13 @@ class Mixture:
         self.N = None
         self.Temperature = 298.15
         self.Pressure = 101325.0
+        self.ParticleSize = None
+        self.ParticleCharge = None
+        # Other attributes #
         self._To = 273.15
         self._Po = 101325.0
         self.isElectrolyte = False
+
 
     @property
     def MolarMass(self):
@@ -51,14 +57,13 @@ class Mixture:
         for i,MMi in enumerate(self.MolarMasses.values()):
             MM += self.MolarFractions[i] * MMi
         return MM
-
     @property
     def MolarMasses(self):
         MMi = []
         for c in self.Components:
             MMi.append(c.MolarMass)
         return OrderedDict(zip(self.ComponentNames, MMi))
-
+    
     @property
     def MassFractions(self):
         wi = []
@@ -72,7 +77,6 @@ class Mixture:
         else:
             wi = self.wi
         return wi
-
     @property
     def MolarFractions(self):
         zi = []
@@ -97,7 +101,6 @@ class Mixture:
         else:
             M = self.M
         return M
-
     @property
     def Volume(self):
         if self.V is None:
@@ -109,7 +112,6 @@ class Mixture:
         else:
             V = self.V
         return V
-
     @property
     def Moles(self):
         if self.N is None:
@@ -122,40 +124,41 @@ class Mixture:
             N = self.N
         return N
 
-    def Density(self, T=298.15):
+    @property
+    def Density(self):
         rho = 0
+        T = self.Temperature
         for i,c in enumerate(self.Components):
-            rho += self.MassFractions[i] / c.Density(T)
+            rho += self.MassFractions[i] / c.Density
         return 1 / rho
-
-    def Viscosity(self, T=298.15):
+    @property
+    def Viscosity(self):
         mu = 1.0
+        T = self.Temperature
         for i,c in enumerate(self.Components):
-            mu = mu*(c.Viscosity(T))**self.MassFractions[i]
+            mu = mu*(c.Viscosity)**self.MassFractions[i]
         return mu
-
-    def SpecificHeat(self, T=298.15):
+    @property
+    def SpecificHeat(self):
         Cp = 0
+        T = self.Temperature
         for i,c in enumerate(self.Components):
-            Cp += self.MassFractions[i] * c.SpecificHeat(T)
+            Cp += self.MassFractions[i] * c.SpecificHeat
         return Cp
 
 
-class Stream:
-    def __init__(self, mixture):
-        # Mixture properties #
-        self.Components = mixture.Components
-        self.ComponentNames = mixture.ComponentNames
-        self.Temperature = mixture.Temperature
-        self.Pressure = mixture.Pressure
-        self.Density = mixture.Density(self.Temperature)
-        self.Viscosity = mixture.Viscosity(self.Temperature)
-        self.SpecificHeat = mixture.SpecificHeat(self.Temperature)
-        self.MolarMass = mixture.MolarMass
-        self.MolarMasses = mixture.MolarMasses
-        self.MassFractions = mixture.MassFractions
-        self.MolarFractions = mixture.MolarFractions
-        # Stream properties #
+class Stream(Mixture):
+    def __init__(self, components):
+        # Mixture attributes #
+        self.Components = components
+        self.ComponentNames = [c.Name for c in self.Components]
+        self.wi = None
+        self.zi = None
+        self.Temperature = 298.15
+        self.Pressure = 101325.0
+        self.ParticleSize = None
+        self.ParticleCharge = None
+        # Stream attributes #
         self.Tag = None
         self.From = None
         self.To = None
@@ -163,13 +166,11 @@ class Stream:
         self.Vf = None
         self.Vfo = None
         self.Nf = None
-        # Other properties
+        # Other attributes #
         self._To = 273.15
         self._Po = 101325.0
         self.isElectrolyte = False
-        self.ParticleSize = None
-        self.ParticleCharge = None
-        
+
     @property
     def MassFlow(self):
         if self.Mf is None:
@@ -179,7 +180,6 @@ class Stream:
                 return self.Nf * self.MolarMass
         else:
             return self.Mf
-
     @property
     def VolumeFlow(self):
         if self.Vf is None:
@@ -189,14 +189,12 @@ class Stream:
                 return self.NormalVolumeFlow * (self._Po / self._To) * (self.Temperature / self.Pressure)
         else:
             return self.Vf
-
     @property
     def NormalVolumeFlow(self):
         if self.Vfo is None:
             return self.VolumeFlow * (self._To / self._Po) * (self.Pressure / self.Temperature)
         else:
             return self.Vfo
-
     @property
     def MolarFlow(self):
         if self.Nf is None:
@@ -207,17 +205,13 @@ class Stream:
     @property
     def MassFlows(self):
         return [wi * self.MassFlow for wi in self.MassFractions]
-
     @property
     def VolumeFlows(self):
         return [zi * self.VolumeFlow for zi in self.MolarFractions]
-
     @property
     def MolarFlows(self):
         return [zi * self.MolarFlow for zi in self.MolarFractions] 
 
 
-
-    @property
     def Velocity(self, diameter):
         return self.VolumeFlow / Circle(diameter).Area

@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from collections import Counter
+
 #from thermoChemical import *
 from Chemical import *
 from Geometry import *
@@ -38,14 +39,15 @@ class Hopper:
         wi = Mixer().OutletFractions(self.Inlets)
         M = Mixture(c)
         M.V = self.NextVolume()
-        M.MassFractions = wi
+        M.wi = wi
         M.Temperature = Mixer().OutletTemperature(self.Inlets)
         # M.Pressure = ...
         return M
 
     def OutletStream(self):
-        O = Stream(self.NextMixture())
-        O.VolumeFlow = self.OutletVolumeFlow
+        O = Stream(self.NextMixture().Components)
+        O.wi = self.NextMixture().wi
+        O.Vf = self.OutletVolumeFlow
         return O
 
     def Liquid(self):

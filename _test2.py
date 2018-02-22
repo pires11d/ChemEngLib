@@ -1,4 +1,4 @@
-from Chemical import Substance, Mixture, Stream
+from Chemical import *
 from matplotlib import animation
 import matplotlib.pyplot as plt
 
@@ -17,9 +17,11 @@ o.MolarMass = 100e-3
 m = Mixture([s,o])
 m.wi = [0.5,0.5]
 
-st1 = Stream(m)
+st1 = Stream([s,o])
+st1.wi = [1.0,0.0]
 st1.Vf = 1.0
-st2 = Stream(m)
+st2 = Stream([s,o])
+st2.wi = [0.5,0.5]
 st2.Vf = 2.0
 
 
@@ -27,28 +29,30 @@ from UnitOp import Hopper, Mixer
 h = Hopper(100)
 h.Volume = h.MaxVolume / 2
 h.Inlets = [st1,st2]
-h.OutletVolumeFlow = 1
+h.OutletVolumeFlow = 3.5
+#print(h.OutletStream().MassFractions)
 
-#region ANIMATION
 
-# Canvas #
-fig = plt.figure()
-fig.set_dpi(100)
-fig.set_size_inches(5,5)
-ax = plt.axes(xlim=(-1, 1), ylim=(0, 2))
+# #region ANIMATION
 
-def init():
-    ax.add_patch(h.Contour())
-    return h.Contour(),
+# # Canvas #
+# fig = plt.figure()
+# fig.set_dpi(100)
+# fig.set_size_inches(5,5)
+# ax = plt.axes(xlim=(-1, 1), ylim=(0, 2))
 
-def animate(i):
-    h.NextVolume()
-    patch = h.Liquid()
-    ax.add_patch(patch)
-    return patch,
+# def init():
+#     ax.add_patch(h.Contour())
+#     return h.Contour(),
 
-# Function Call #
-anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
-plt.show()
+# def animate(i):
+#     h.NextVolume()
+#     patch = h.Liquid()
+#     ax.add_patch(patch)
+#     return patch,
 
-#endregion
+# # Function Call #
+# anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
+# plt.show()
+
+# #endregion
