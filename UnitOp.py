@@ -72,8 +72,8 @@ class Hopper:
         zero = 0.01
         h = H * self.NextVolume / self.MaxVolume
         points = [[-W/2,zero],[-W/2,h],[+W/2,h],[+W/2,zero]]
-        w0 = self.NextMixture.MassFractions[1]
-        palette = (w0*1.0, w0*0.9, (1-w0)*1.0)
+        w0 = self.NextMixture.MassFractions[0]
+        palette = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0))
         patch = plt.Polygon(points, closed=True, fill=True, color=palette, zorder=1)
         return patch
     
