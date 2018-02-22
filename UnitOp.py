@@ -14,7 +14,6 @@ from Correlation import *
 
 
 #region FLUIDS
-
 class Hopper:
     def __init__(self, max_volume):
         self.dt = 0.1
@@ -23,46 +22,67 @@ class Hopper:
         self.Width = 1.0
         self.Inlets = []
         self.OutletVolumeFlow = 0
-        self.Volume = 0
-        
+        self.Mixture = None
+
+    @property
     def NextVolume(self):
         IN = 0
         for i in self.Inlets:
             IN += i.VolumeFlow
         OUT = self.OutletVolumeFlow
-        V = (IN - OUT) * self.dt + self.Volume
-        self.Volume = V
+        V = (IN - OUT) * self.dt + self.Mixture.Volume
+        self.Mixture.V = V
         return V
-    
+
+    @property
     def NextMixture(self):
         c = Mixer().OutletComponents(self.Inlets)
-        wi = Mixer().OutletFractions(self.Inlets)
-        M = Mixture(c)
-        M.V = self.NextVolume()
-        M.wi = wi
-        M.Temperature = Mixer().OutletTemperature(self.Inlets)
-        # M.Pressure = ...
-        return M
+        m = Mixture(c)
+        m.V = self.NextVolume
+        IN = Mixer().OutletFlow(self.Inlets) * self.dt
+        wi_list = Mixer().OutletFractions(self.Inlets)
+        wi_list2 = []
+        for i,wi in enumerate(wi_list):
+            num = wi * IN + self.Mixture.Mass * self.Mixture.MassFractions[i]
+            den = IN + self.Mixture.Mass
+            wi = num / den
+            wi_list2.append(wi)
+        m.wi = wi_list2
+        m.Temperature = Mixer().OutletTemperature(self.Inlets)
+        self.Mixture = m
+        return m
 
+    @property
+    def NextTime(self):
+        self.NextVolume
+        self.NextMixture
+        return None
+
+    @property
     def OutletStream(self):
-        O = Stream(self.NextMixture().Components)
-        O.wi = self.NextMixture().wi
+        O = Stream(self.NextMixture.Components)
+        O.wi = self.NextMixture.wi
         O.Vf = self.OutletVolumeFlow
         return O
 
-    def Liquid(self):
+    @property
+    def DrawLiquid(self):
         H = self.Height
         W = self.Width
-        h = H * self.NextVolume() / self.MaxVolume
-        points = [[-W/2,0],[-W/2,h],[+W/2,h],[+W/2,0]]
-        patch = plt.Polygon(points, closed=True, fill=True, color='red')
+        zero = 0.01
+        h = H * self.NextVolume / self.MaxVolume
+        points = [[-W/2,zero],[-W/2,h],[+W/2,h],[+W/2,zero]]
+        w0 = self.NextMixture.MassFractions[0]
+        palette = (w0*1.0, w0*0.9, w0*0.1)
+        patch = plt.Polygon(points, closed=True, fill=True, color=palette, zorder=1)
         return patch
     
-    def Contour(self):
-        H = self.Height
-        W = self.Width
-        points = [[-W/2,0],[-W/2,H],[+W/2,H],[+W/2,0]]
-        patch = plt.Polygon(points, closed=None, fill=None)
+    @property
+    def DrawContour(self):
+        H = self.Height*1.02
+        W = self.Width*1.02
+        points = [[-W/2,H],[-W/2,0],[+W/2,0],[+W/2,H]]
+        patch = plt.Polygon(points, closed=None, fill=None, lw=2, edgecolor='black', zorder=2)
         return patch
 
 
@@ -865,10 +885,15 @@ class Flash:
         LO.Pressure = self.Pressure
         return LO
 
+
+
+
+
+
+
 #endregion
 
 #region SOLID/FLUID
-
 class Mill:
     def __init__(self, power=None, outlet_particle_size=None, dry_grinding=False):
         self._d2 = outlet_particle_size

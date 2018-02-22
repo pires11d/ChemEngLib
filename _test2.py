@@ -15,44 +15,43 @@ o.SpecificHeat0 = 3
 o.MolarMass = 100e-3
 
 m = Mixture([s,o])
-m.wi = [0.5,0.5]
+m.wi = [0.2,0.8]
+m.V = 20
 
-st1 = Stream([s,o])
-st1.wi = [1.0,0.0]
-st1.Vf = 1.0
-st2 = Stream([s,o])
-st2.wi = [0.5,0.5]
-st2.Vf = 2.0
+s = Stream([s,o])
+s.wi = [1.0,0.0]
+s.Vf = 1.5
 
 
 from UnitOp import Hopper, Mixer
 h = Hopper(100)
-h.Volume = h.MaxVolume / 2
-h.Inlets = [st1,st2]
-h.OutletVolumeFlow = 3.5
-#print(h.OutletStream().MassFractions)
+h.Mixture = m
+h.Inlets = [s]
+h.OutletVolumeFlow = 1.0
 
 
-# #region ANIMATION
+#region ANIMATION
 
-# # Canvas #
-# fig = plt.figure()
-# fig.set_dpi(100)
-# fig.set_size_inches(5,5)
-# ax = plt.axes(xlim=(-1, 1), ylim=(0, 2))
+# Canvas #
+fig = plt.figure()
+fig.set_dpi(100)
+fig.set_size_inches(5,5)
+ax = plt.axes(xlim=(-1, 1), ylim=(-0.5, 2))
 
-# def init():
-#     ax.add_patch(h.Contour())
-#     return h.Contour(),
+def init():
+    ax.add_patch(h.DrawContour)
+    return h.DrawContour,
 
-# def animate(i):
-#     h.NextVolume()
-#     patch = h.Liquid()
-#     ax.add_patch(patch)
-#     return patch,
+def animate(i):
+    h.NextTime
+    # print(h.OutletStream.MassFractions)
+    print(h.NextMixture.MassFractions)
+    patch = h.DrawLiquid
+    ax.add_patch(patch)
+    return patch,
 
-# # Function Call #
-# anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
-# plt.show()
+# Function Call #
+anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
+plt.show()
 
-# #endregion
+#endregion
