@@ -17,13 +17,28 @@ from Correlation import *
 #region FLUIDS
 class Tank:
     def __init__(self, max_volume):
-        self.dt = 0.1
         self.MaxVolume = max_volume
-        self.Height = 1.0
-        self.Width = 1.0
         self.Inlets = []
         self.OutletVolumeFlow = 0.0
         self.Mixture = None
+        # Drawing #
+        self.dt = 0.1
+        self.X = 0 
+        self.Y = 0
+        self.Height = 1.0
+        self.Width = 1.0
+
+    @property
+    def ConeBottom(self):
+        return False
+
+    @property
+    def ConeVolume(self):
+        return 0.0
+
+    @property
+    def ConeHeight(self):
+        return 0.0
 
     @property
     def NextVolume(self):
@@ -67,40 +82,53 @@ class Tank:
         return O
 
     @property
+    def LiquidHeight(self):
+        return self.Height * self.NextVolume / self.MaxVolume
+
+    @property
+    def LiquidWidth(self):
+        return self.Width
+
+    @property
+    def DrawContour(self):
+        X = self.X
+        Y = self.Y
+        Hc = self.ConeHeight
+        H = Hc + self.Height
+        W = self.Width*1.01
+        points = [[X,Y+H],[X,Y+Hc],[X+W/2,Y],[X+W,Y+Hc],[X+W,Y+H]]
+        patch = plt.Polygon(points, closed=None, fill=None, lw=2, edgecolor='black')
+        return patch
+
+    @property
+    def DrawLiquid(self):
+        zero = 0.02
+        X = self.X
+        Y = self.Y
+        Hc = self.ConeHeight
+        W = self.Width
+        h = self.LiquidHeight
+        w = (W-self.LiquidWidth)/2
+        if self.LiquidWidth < self.Width:
+            points = [[X+w+zero,Y+h+zero],[X+W/2,Y+zero],[X+W-w-zero,Y+h+zero]]
+        else:
+            points = [[X+zero*2,Y+h+zero],[X+zero*2,Y+Hc+zero],[X+W/2,Y+zero],[X+W-zero,Y+Hc+zero],[X+W-zero,Y+h+zero]]
+        patch = plt.Polygon(points, closed=True, fill=True, color=self.Color)
+        return patch
+
+    @property
     def Color(self):
         w0 = self.NextMixture.MassFractions[0]
         color = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0*0.7))
         return color
 
-    @property
-    def DrawLiquid(self):
-        H = self.Height
-        W = self.Width
-        zero = 0.01
-        h = H * self.NextVolume / self.MaxVolume
-        points = [[-W/2,zero],[-W/2,h],[+W/2,h],[+W/2,zero]]
-        w0 = self.NextMixture.MassFractions[0]
-        patch = plt.Polygon(points, closed=True, fill=True, color=self.Color, zorder=1)
-        return patch
-    
-    @property
-    def DrawContour(self):
-        H = self.Height*1.02
-        W = self.Width*1.02
-        points = [[-W/2,H],[-W/2,0],[0,0],[+W/2,0],[+W/2,H]]
-        patch = plt.Polygon(points, closed=None, fill=None, lw=2, edgecolor='black', zorder=2)
-        return patch
-
 
 class Hopper(Tank):
     def __init__(self, initial_angle, final_angle, Hmin, Hmax, r1, r2, R):
-        self.dt = 0.1
         self.Inlets = []
         self.OutletVolumeFlow = 0
         self.Mixture = None
-        self.Height = 1.0
-        self.Width = 1.0
-        # Hopper properties #
+        # Hopper attributes #
         self.InitialAngle = initial_angle
         self.FinalAngle = final_angle
         self.AngularSize = self.FinalAngle - self.InitialAngle
@@ -111,6 +139,12 @@ class Hopper(Tank):
         self.InternalRadius = r1
         self.MiddleRadius = r2
         self.ExternalRadius = R
+        # Drawing #
+        self.dt = 0.1        
+        self.X = 0 
+        self.Y = 0
+        self.Height = 1.0
+        self.Width = self.AngularSize/10
 
     @property
     def ActualHeight(self):
@@ -140,15 +174,18 @@ class Hopper(Tank):
 
 class recTank(Tank):
     def __init__(self, length, width, height):
-        self.dt = 0.1
         self.Inlets = []
         self.OutletVolumeFlow = 0
         self.Mixture = None
-        # Rectangular tank properties #
+        # Rectangular tank attributes #
         self.Length = length
-        self.Width = width
+        # Drawing #
+        self.dt = 0.1
+        self.X = 0 
+        self.Y = 0    
         self.Height = height
-    
+        self.Width = width
+
     @property
     def MaxVolume(self):
         return Cube(self.Height,self.Length,self.Height).Volume
@@ -157,13 +194,22 @@ class recTank(Tank):
 class cylTank(Tank):
     def __init__(self, diameter, height, cone_angle=0.0):
         self.dt = 0.1
+        self.X = 0 
+        self.Y = 0
         self.Inlets = []
         self.OutletVolumeFlow = 0
         self.Mixture = None
-        # Cylindrical tank properties #
+        # Cylindrical tank attributes #
         self.Height = height
         self.Diameter = diameter
         self.ConeAngle = cone_angle     
+
+    @property
+    def ConeBottom(self):
+        if self.ConeAngle > 0.0:
+            return True
+        else:
+            return False
 
     @property
     def ConeHeight(self):
@@ -171,7 +217,7 @@ class cylTank(Tank):
 
     @property
     def ConeVolume(self):
-        return Cone(diameter=self.Diameter,angle=self.ConeAngle).Volume
+        return Cone(diameter=self.Diameter,height=self.ConeHeight).Volume
 
     @property
     def CylinderVolume(self):
@@ -194,35 +240,16 @@ class cylTank(Tank):
         return h
 
     @property
-    def LiquidDiameter(self):
+    def LiquidWidth(self):
         if self.NextVolume < self.ConeVolume:
             d = Cone(height=self.LiquidHeight,angle=self.ConeAngle).Diameter
         else:
             d = self.Diameter
         return d
-
-    @property
-    def DrawLiquid(self):
-        H = self.LiquidHeight
-        W = self.LiquidDiameter
-        zero = 0.01
-        h = self.ConeHeight
-        if self.NextVolume < self.ConeVolume:
-            points = [[-W/2,H],[zero,zero],[+W/2,H]]
-        else:
-            points = [[-W/2,H],[-W/2,h],[0,0],[+W/2,h],[+W/2,H]]
-        patch = plt.Polygon(points, closed=True, fill=True, color=self.Color, zorder=1)
-        return patch
     
     @property
-    def DrawContour(self):
-        h = self.ConeHeight
-        H = h + self.Height*1.02
-        W = self.Diameter*1.02
-        points = [[-W/2,H],[-W/2,h],[0,0],[+W/2,h],[+W/2,H]]
-        patch = plt.Polygon(points, closed=None, fill=None, lw=2, edgecolor='black', zorder=2)
-        return patch
-    
+    def Width(self):
+        return self.Diameter
 
 
 class Splitter:
