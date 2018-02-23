@@ -67,6 +67,12 @@ class Tank:
         return O
 
     @property
+    def Color(self):
+        w0 = self.NextMixture.MassFractions[0]
+        color = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0*0.7))
+        return color
+
+    @property
     def DrawLiquid(self):
         H = self.Height
         W = self.Width
@@ -74,8 +80,7 @@ class Tank:
         h = H * self.NextVolume / self.MaxVolume
         points = [[-W/2,zero],[-W/2,h],[+W/2,h],[+W/2,zero]]
         w0 = self.NextMixture.MassFractions[0]
-        palette = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0))
-        patch = plt.Polygon(points, closed=True, fill=True, color=palette, zorder=1)
+        patch = plt.Polygon(points, closed=True, fill=True, color=self.Color, zorder=1)
         return patch
     
     @property
@@ -181,31 +186,40 @@ class cylTank(Tank):
     @property
     def LiquidHeight(self):
         h = (3.0*self.NextVolume*math.tan(math.radians(self.ConeAngle))/math.pi)**(1.0/3.0)
+        if self.NextVolume < self.ConeVolume:
+            h = h
+        else:
+            V = self.NextVolume - self.ConeVolume
+            h = h + V / Cylinder(self.Diameter,self.Height).Area
         return h
 
     @property
     def LiquidDiameter(self):
-        d = Cone(height=self.LiquidHeight,angle=self.ConeAngle).Diameter
+        if self.NextVolume < self.ConeVolume:
+            d = Cone(height=self.LiquidHeight,angle=self.ConeAngle).Diameter
+        else:
+            d = self.Diameter
         return d
 
     @property
     def DrawLiquid(self):
-        H = self.Height
-        W = self.Width
+        H = self.LiquidHeight
+        W = self.LiquidDiameter
         zero = 0.01
-        h = H * self.NextVolume / self.MaxVolume
-        points = [[-W/2,zero],[-W/2,h],[+W/2,h],[+W/2,zero]]
-        w0 = self.NextMixture.MassFractions[0]
-        palette = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0))
-        patch = plt.Polygon(points, closed=True, fill=True, color=palette, zorder=1)
+        h = self.ConeHeight
+        if self.NextVolume < self.ConeVolume:
+            points = [[-W/2,H],[zero,zero],[+W/2,H]]
+        else:
+            points = [[-W/2,H],[-W/2,h],[0,0],[+W/2,h],[+W/2,H]]
+        patch = plt.Polygon(points, closed=True, fill=True, color=self.Color, zorder=1)
         return patch
     
     @property
     def DrawContour(self):
         h = self.ConeHeight
         H = h + self.Height*1.02
-        W = self.Width*1.02
-        points = [[-W/2,H],[-W/2,0],[0,0],[+W/2,0],[+W/2,H]]
+        W = self.Diameter*1.02
+        points = [[-W/2,H],[-W/2,h],[0,0],[+W/2,h],[+W/2,H]]
         patch = plt.Polygon(points, closed=None, fill=None, lw=2, edgecolor='black', zorder=2)
         return patch
     
