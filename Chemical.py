@@ -127,21 +127,18 @@ class Mixture:
     @property
     def Density(self):
         rho = 0
-        T = self.Temperature
         for i,c in enumerate(self.Components):
             rho += self.MassFractions[i] / c.Density
         return 1 / rho
     @property
     def Viscosity(self):
         mu = 1.0
-        T = self.Temperature
         for i,c in enumerate(self.Components):
             mu = mu*(c.Viscosity)**self.MassFractions[i]
         return mu
     @property
     def SpecificHeat(self):
         Cp = 0
-        T = self.Temperature
         for i,c in enumerate(self.Components):
             Cp += self.MassFractions[i] * c.SpecificHeat
         return Cp

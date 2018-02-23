@@ -41,30 +41,42 @@ class Tank:
         return 0.0
 
     @property
-    def NextVolume(self):
+    def InletVolumeFlow(self):
         IN = 0
-        for i in self.Inlets:
-            IN += i.VolumeFlow
+        if len(self.Inlets) > 0:
+            for i in self.Inlets:
+                IN += i.VolumeFlow
+        return IN
+
+    @property
+    def NextVolume(self):
+        IN = self.InletVolumeFlow
         OUT = self.OutletVolumeFlow
         V = (IN - OUT) * self.dt + self.Mixture.Volume
+        if V < 0.0:
+            V = 0.0
         self.Mixture.V = V
         return V
 
     @property
     def NextMixture(self):
-        c = Mixer().OutletComponents(self.Inlets)
-        m = Mixture(c)
+        m = Mixture(self.Mixture.Components)
         m.V = self.NextVolume
         IN = Mixer().OutletFlow(self.Inlets) * self.dt
-        wi_list = Mixer().OutletFractions(self.Inlets)
+        if IN != 0:
+            m.Temperature = Mixer().OutletTemperature(self.Inlets)
+            wi_list = Mixer().OutletFractions(self.Inlets)
+        else:
+            wi_list = self.Mixture.MassFractions
+        m.wi = wi_list
         wi_list2 = []
-        for i,wi in enumerate(wi_list):
-            num = wi * IN + self.Mixture.Mass * self.Mixture.MassFractions[i]
-            den = IN + self.Mixture.Mass
-            wi = num / den
-            wi_list2.append(wi)
-        m.wi = wi_list2
-        m.Temperature = Mixer().OutletTemperature(self.Inlets)
+        if self.NextVolume != 0:
+            for i,wi in enumerate(wi_list):
+                num = wi * IN + self.Mixture.Mass * self.Mixture.MassFractions[i]
+                den = IN + self.Mixture.Mass
+                wi = num / den
+                wi_list2.append(wi)
+            m.wi = wi_list2
         self.Mixture = m
         return m
 
@@ -76,9 +88,12 @@ class Tank:
 
     @property
     def OutletStream(self):
-        O = Stream(self.NextMixture.Components)
+        O = Stream(self.Mixture.Components)
         O.wi = self.NextMixture.wi
+        if self.NextVolume == 0.0:
+            self.OutletVolumeFlow = 0.0 + self.InletVolumeFlow
         O.Vf = self.OutletVolumeFlow
+        O.Temperature = self.NextMixture.Temperature
         return O
 
     @property
@@ -297,6 +312,7 @@ class Mixer:
         return [F/self.OutletFlow(inlets) for F in self.InletFlows(inlets)]
 
     def MassBalance(self, inlets):
+        # TODO: rever!!!
         dc_list = []
         for i, I in enumerate(inlets):
             dc_list.append(dict(zip(I.Components, I.MassFlows)))
@@ -321,7 +337,7 @@ class Mixer:
         den = 0
         for I in inlets:
             num += I.MassFlow * I.SpecificHeat * I.Temperature
-            den += I.MassFlow * I.SpecificHeat 
+            den += I.MassFlow * I.SpecificHeat
         T = num / den
         return T
 
