@@ -1,4 +1,5 @@
 from Chemical import *
+from Converter import *
 from matplotlib import animation
 import matplotlib.pyplot as plt
 
@@ -16,18 +17,20 @@ o.MolarMass = 100e-3
 
 m = Mixture([s,o])
 m.wi = [0.2,0.8]
-m.V = 20
+m.V = 1.0
 
 s = Stream([s,o])
 s.wi = [1.0,0.0]
-s.Vf = 1.5
+s.Vf = VolumeFlow(150.0).m3_h
 
 
-from UnitOp import Hopper, Mixer
-h = Hopper(100)
+from UnitOp import *
+#h = Hopper(initial_angle=30,final_angle=60,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
+#h = recTank(1.0,1.0,1.5)
+h = cylTank(1.0,1.0,30)
 h.Mixture = m
 h.Inlets = [s]
-h.OutletVolumeFlow = 1.0
+h.OutletVolumeFlow = VolumeFlow(100.0).m3_h
 
 
 #region ANIMATION

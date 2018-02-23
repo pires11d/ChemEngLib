@@ -2,6 +2,7 @@
 
 
 import time
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
@@ -14,14 +15,14 @@ from Correlation import *
 
 
 #region FLUIDS
-class Hopper:
+class Tank:
     def __init__(self, max_volume):
         self.dt = 0.1
         self.MaxVolume = max_volume
         self.Height = 1.0
         self.Width = 1.0
         self.Inlets = []
-        self.OutletVolumeFlow = 0
+        self.OutletVolumeFlow = 0.0
         self.Mixture = None
 
     @property
@@ -81,302 +82,133 @@ class Hopper:
     def DrawContour(self):
         H = self.Height*1.02
         W = self.Width*1.02
-        points = [[-W/2,H],[-W/2,0],[+W/2,0],[+W/2,H]]
+        points = [[-W/2,H],[-W/2,0],[0,0],[+W/2,0],[+W/2,H]]
         patch = plt.Polygon(points, closed=None, fill=None, lw=2, edgecolor='black', zorder=2)
         return patch
 
 
-class cylTank:
-    def __init__(self, tank_diameter, tank_height, cone_angle=0.0):
-        self.InitialVolume = 0.0
-        self.InitialMixture = None
-        self.D = tank_diameter
-        self.H = tank_height
-        self.Theta = cone_angle
+class Hopper(Tank):
+    def __init__(self, initial_angle, final_angle, Hmin, Hmax, r1, r2, R):
+        self.dt = 0.1
+        self.Inlets = []
+        self.OutletVolumeFlow = 0
+        self.Mixture = None
+        self.Height = 1.0
+        self.Width = 1.0
+        # Hopper properties #
+        self.InitialAngle = initial_angle
+        self.FinalAngle = final_angle
+        self.AngularSize = self.FinalAngle - self.InitialAngle
+        self.MinAngle = 0
+        self.MaxAngle = 360
+        self.MinHeight = Hmin
+        self.MaxHeight = Hmax
+        self.InternalRadius = r1
+        self.MiddleRadius = r2
+        self.ExternalRadius = R
+
+    @property
+    def ActualHeight(self):
+        Hmin = self.MinHeight
+        Hmax = self.MaxHeight
+        thetaMin = math.radians(self.MinAngle)
+        thetaMax = math.radians(self.MaxAngle)
+        theta = math.radians(self.InitialAngle)
+        return Hmax-(Hmax-Hmin)/(thetaMax-thetaMin)*(thetaMax-theta)
+
+    @property
+    def MaxVolume(self):
+        PI = math.pi
+        r1 = self.InternalRadius
+        r2 = self.MiddleRadius
+        R = self.ExternalRadius
+        Hmin = self.MinHeight
+        Hmax = self.MaxHeight
+        h_ = self.ActualHeight
+        dTheta = math.radians(self.AngularSize)
+        Vminor = PI * Hmin * ((3 * r2 * r1 ** 2 - r2 ** 3 - 2 * r1 ** 3)) / (3 * (r1 - r2))
+        Vtotal = 0.5 * PI * (h_ - Hmin + 2 * Hmax) * (R ** 2 - r1 ** 2)
+        V = Vtotal - Vminor
+        V = V * (dTheta) / (2 * PI)
+        return V
+    
+
+class recTank(Tank):
+    def __init__(self, length, width, height):
+        self.dt = 0.1
+        self.Inlets = []
+        self.OutletVolumeFlow = 0
+        self.Mixture = None
+        # Rectangular tank properties #
+        self.Length = length
+        self.Width = width
+        self.Height = height
+    
+    @property
+    def MaxVolume(self):
+        return Cube(self.Height,self.Length,self.Height).Volume
+
+    
+class cylTank(Tank):
+    def __init__(self, diameter, height, cone_angle=0.0):
+        self.dt = 0.1
+        self.Inlets = []
+        self.OutletVolumeFlow = 0
+        self.Mixture = None
+        # Cylindrical tank properties #
+        self.Height = height
+        self.Diameter = diameter
+        self.ConeAngle = cone_angle     
 
     @property
     def ConeHeight(self):
-        return Cone(diameter=self.D, angle=self.Theta).Height
-    @property
-    def TankHeight(self):
-        return self.ConeHeight + self.H
+        return Cone(diameter=self.Diameter,angle=self.ConeAngle).Height
+
     @property
     def ConeVolume(self):
-        return Cone(diameter=self.D, angle=self.Theta).Volume
-    @property
-    def TankVolume(self):
-        Vcyl = Cylinder(self.D, self.H).Volume
-        return self.ConeVolume + Vcyl
-
-    def LiquidVolume(self, inlets, outlet_ratio, time):
-        V = self.InitialVolume
-        for i in inlets:
-            V += (i.VolumeFlow - outlet_ratio*i.VolumeFlow) * time
-        if V < 0:
-            V = 0
-        if V > self.TankVolume:
-            V = self.TankVolume
-        return V
-
-    def LiquidHeight(self, inlets, outlet_ratio, time):
-        if self.LiquidVolume(inlets, outlet_ratio, time) < self.ConeVolume:
-            h = ((3.0 * self.LiquidVolume(inlets, outlet_ratio, time) * (math.tan(math.radians(self.Theta))) ** 2.0) / math.pi) ** (1.0 / 3.0)
-        else:
-            h = self.ConeHeight + (self.LiquidVolume(inlets, outlet_ratio, time) - self.ConeVolume) / (0.25 * math.pi * self.D ** 2.0)
-        return h
-
-    def LiquidDiameter(self, inlets, outlet_ratio, time):
-        if self.LiquidVolume(inlets, outlet_ratio, time) < self.ConeVolume:
-            D = 2.0 * self.LiquidHeight(inlets, outlet_ratio, time) / math.tan(math.radians(self.Theta))
-        else:
-            D = self.D
-        return D
-
-    def LiquidVolumes(self, inlets, outlet_ratio_list, t_list, plot=False):
-        v_list = []
-        for i, t in enumerate(t_list):
-            v_list.append(self.LiquidVolume(inlets, outlet_ratio_list[i], t))
-        if plot is True:
-            plt.plot(t_list, v_list)
-            plt.show()
-        else:
-            return v_list
-
-    def LiquidHeights(self, inlets, outlet_ratio_list, t_list, plot=False):
-        h_list = []
-        for i, t in enumerate(t_list):
-            h_list.append(self.LiquidHeight(inlets, outlet_ratio_list[i], t))
-        if plot is True:
-            plt.plot(t_list, h_list)
-            plt.show()
-        else:
-            return h_list
-
-    def LiquidDiameters(self, inlets, outlet_ratio_list, t_list, plot=False):
-        d_list = []
-        for i, t in enumerate(t_list):
-            d_list.append(self.LiquidDiameter(inlets, outlet_ratio_list[i], t))
-        if plot is True:
-            plt.plot(t_list, d_list)
-            plt.show()
-        else:
-            return d_list
-
-    def Animation(self, inlets, outlet_ratio_list, t_list):
-
-        # Some definitions #
-        D = self.D
-        Hc = self.ConeHeight
-        Ht = self.TankHeight
-        Hs = self.TankHeight * 1.3
-        maximum = max(self.D, Ht)
-        h_list = self.LiquidHeights(inlets, outlet_ratio_list, t_list, plot=True)
-        d_list = self.LiquidDiameters(inlets, outlet_ratio_list, t_list, plot=True)
-        x_list = [tuple([-d / 2, d / 2]) for d in d_list]
-        y_list = [tuple([h, h]) for h in h_list]
-
-        # Let the plots begin #
-        plt.ion()
-        for i, t in enumerate(t_list):
-            # Draws cylTank #
-            xTk = [0, -D / 2, -D / 2, +D / 2, +D / 2, 0]
-            yTk = [0, Hc, Ht, Ht, Hc, 0]
-            plt.plot(xTk, yTk, color='black')
-            plt.xlim(-maximum * 0.75, +maximum * 0.75)
-            plt.ylim(0, maximum * 1.5)
-            # Draws Liquid Level#
-            if self.Theta > 0.0:
-                plt.plot(x_list[i], y_list[i], color='cyan')
-            else:
-                plt.stackplot(x_list[i], y_list[i], color='cyan')
-            # Draws Shower #
-            xS = [0]
-            yS = [Hs]
-            plt.scatter(xS, yS, s=100.0, c='gray')
-            # Draws Droplets #
-            xD = [0, 0, 0, 0, 0]
-            xD1 = np.linspace(0, -0.05, 5)
-            xD2 = np.linspace(0, +0.05, 5)
-            yD = [0.1 * Ht + 0.9 * Hs, 0.3 * Ht + 0.7 * Hs, 0.5 * Ht + 0.5 * Hs, 0.7 * Ht + 0.3 * Hs,
-                  0.9 * Ht + 0.1 * Hs]
-            yyD = [Hs, 0.2 * Ht + 0.8 * Hs, 0.4 * Ht + 0.6 * Hs, 0.6 * Ht + 0.4 * Hs, 0.8 * Ht + 0.2 * Hs]
-            a = plt.scatter(xD, yD, s=20.0, c='cyan')
-            a1 = plt.scatter(xD1, yD, s=10.0, c='cyan')
-            a2 = plt.scatter(xD2, yD, s=10.0, c='cyan')
-            plt.draw()
-            plt.pause(0.001)
-            a.remove(), a1.remove(), a2.remove()
-            aa = plt.scatter(xD, yyD, s=20.0, c='cyan')
-            aa1 = plt.scatter(xD1, yyD, s=10.0, c='cyan')
-            aa2 = plt.scatter(xD2, yyD, s=10.0, c='cyan')
-            plt.draw()
-            plt.pause(0.001)
-            aa.remove(), aa1.remove(), aa2.remove()
-            if self.Theta == 0.0:
-                plt.clf()
-
-
-class recTank:
-    def __init__(self, height, length, width):
-        self.InitialVolume = 0.0
-        self.InitialMixture = None
-        self.H = height
-        self.L = length
-        self.W = width
+        return Cone(diameter=self.Diameter,angle=self.ConeAngle).Volume
 
     @property
-    def TankVolume(self):
-        return Cube(self.H, self.L, self.W).Volume
+    def CylinderVolume(self):
+        return Cylinder(diameter=self.Diameter,height=self.Height).Volume
 
-    def LiquidVolume(self, inlets, outlet_ratio, time):
-        V = self.InitialVolume
-        for i in inlets:
-            V += (i.VolumeFlow - outlet_ratio * i.VolumeFlow) * time
-        if V < 0:
-            V = 0
-        if V > self.TankVolume:
-            V = self.TankVolume
-        return V
+    @property
+    def MaxVolume(self):
+        Vcone = self.ConeVolume
+        Vcyl = self.CylinderVolume
+        return Vcone + Vcyl
 
-    def LiquidHeight(self, inlets, outlet_ratio, time):
-        h = self.LiquidVolume(inlets, outlet_ratio, time) / (self.L * self.W)
+    @property
+    def LiquidHeight(self):
+        h = (3.0*self.NextVolume*math.tan(math.radians(self.ConeAngle))/math.pi)**(1.0/3.0)
         return h
 
-    def LiquidVolumes(self, inlets, outlet_ratio_list, t_list, plot=False):
-        v_list = []
-        for i, t in enumerate(t_list):
-            v_list.append(self.LiquidVolume(inlets, outlet_ratio_list[i], t))
-        if plot is True:
-            plt.plot(t_list, v_list)
-            plt.show()
-        else:
-            return v_list
+    @property
+    def LiquidDiameter(self):
+        d = Cone(height=self.LiquidHeight,angle=self.ConeAngle).Diameter
+        return d
 
-    def LiquidHeights(self, inlets, outlet_ratio_list, t_list, plot=False):
-        h_list = []
-        for i, t in enumerate(t_list):
-            h_list.append(self.LiquidHeight(inlets, outlet_ratio_list[i], t))
-        if plot is True:
-            plt.plot(t_list, h_list)
-            plt.show()
-        else:
-            return h_list
-
-
-class batchDistiller:
-    def __init__(self, initial_moles, boiling_rate, pressure=101325.0 ,dx=0.05):
-        self.InitialMoles = initial_moles
-        self.BoilingRate = boiling_rate
-        self.Pressure = pressure
-        self.dx = dx
-
-    def InitialVolume(self, binary_mixture):
-        Vo = self.InitialMoles*binary_mixture.MolarMass/binary_mixture.Density
-        return Vo
-
-    def Temperature(self, binary_mixture):
-        return binary_mixture.Temperature
-
-    def Ki(self, binary_mixture):
-        binary_mixture.Pressure = self.Pressure
-        return binary_mixture.Ki
-
-    def Volatility(self, binary_mixture):
-        Ki = max(self.Ki(binary_mixture))
-        Kj = min(self.Ki(binary_mixture))
-        return Ki/Kj
-
-    def InitialMolarFraction(self, binary_mixture):
-        for n, Psat in enumerate(binary_mixture.Psats):
-            if Psat == max(binary_mixture.Psats):
-                i = n
-        xo = binary_mixture.MolarFractions[i]
-        return xo
-
-    def LiquidFractionList(self, binary_mixture):
-        return np.arange(self.InitialMolarFraction(binary_mixture), 0.0, -self.dx)
-
-    def VaporFractionList(self, binary_mixture):
-        alpha = self.Volatility(binary_mixture)
-        x_list = self.LiquidFractionList(binary_mixture)
-        y_list = []
-        for i, x in enumerate(self.LiquidFractionList(binary_mixture)):
-            y = alpha*x_list[i] / (1 + x_list[i]*(alpha-1))
-            y_list.append(y)
-        # plt.plot(x_list, y_list)
-        # plt.show()
-        return y_list
-
-    def LiquidProfile(self, binary_mixture):
-        x_list = self.LiquidFractionList(binary_mixture)
-        xo = self.InitialMolarFraction(binary_mixture)
-        Wo = self.InitialMoles
-        W_list = []
-        alpha = self.Volatility(binary_mixture)
-        for i, x in enumerate(x_list):
-            if x != 1.0 and x != 0.0:
-                W_list.append(Wo*math.exp((-1/(alpha-1))*(math.log(xo/x)+alpha*math.log((1-x)/(1-xo)))))
-            else:
-                W_list.append(0.0)
-        # plt.plot(x_list, W_list)
-        # plt.show()
-        return W_list
-
-    def AverageDistillateComposition(self, binary_mixture):
-        wo = self.InitialMoles
-        xo = self.InitialMolarFraction(binary_mixture)
-        x_list = self.LiquidFractionList(binary_mixture)
-        y_list = []
-        for i, w in enumerate(self.LiquidProfile(binary_mixture)):
-            if x_list[i] == xo:
-                y_list.append(self.VaporFractionList(binary_mixture)[0])
-            else:
-                y_list.append((wo*xo-w*x_list[i])/(wo-w))
-        # plt.plot(x_list, y_list)
-        # plt.show()
-        return y_list
-
-    def TimeList(self, binary_mixture):
-        t_list = []
-        wo = self.InitialMoles
-        D = self.BoilingRate
-        for i, w in enumerate(self.LiquidProfile(binary_mixture)):
-            t_list.append((wo-w)/D)
-        return t_list
-
-    def Txy(self, binary_mixture, x1=True):
-        binary_mixture.Pressure = self.Pressure
-        if x1 is True:
-            j = 0
-        else:
-            j = 1
-
-        Tsat1 = binary_mixture.Tsats[j]
-        Tsat2 = binary_mixture.Tsats[1-j]
-
-        T_list = np.linspace(Tsat1, Tsat2, 20)
-        Psats_list = []
-        Psat1 = []
-        Psat2 = []
-        x1 = []
-        y1 = []
-        for i, T in enumerate(T_list):
-            binary_mixture.Temperature = T
-            Psats_list.append(binary_mixture.Psats)
-            Psat1.append(Psats_list[i][j])
-            Psat2.append(Psats_list[i][1-j])
-            x1.append((binary_mixture.Pressure - Psat2[i]) / (Psat1[i] - Psat2[i]))
-            y1.append(x1[i] * binary_mixture.gammaUNIFAC[1-j] * Psat1[i] / binary_mixture.Pressure)
-        plt.plot(x1, T_list, y1, T_list)
-        plt.show()
-
-
-class batchRectifier:
-    def __init__(self, initial_moles, boiling_rate, pressure=101325.0, dx=0.05):
-        self.InitialMoles = initial_moles
-        self.BoilingRate = boiling_rate
-        self.Pressure = pressure
-        self.dx = dx
+    @property
+    def DrawLiquid(self):
+        H = self.Height
+        W = self.Width
+        zero = 0.01
+        h = H * self.NextVolume / self.MaxVolume
+        points = [[-W/2,zero],[-W/2,h],[+W/2,h],[+W/2,zero]]
+        w0 = self.NextMixture.MassFractions[0]
+        palette = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0))
+        patch = plt.Polygon(points, closed=True, fill=True, color=palette, zorder=1)
+        return patch
+    
+    @property
+    def DrawContour(self):
+        h = self.ConeHeight
+        H = h + self.Height*1.02
+        W = self.Width*1.02
+        points = [[-W/2,H],[-W/2,0],[0,0],[+W/2,0],[+W/2,H]]
+        patch = plt.Polygon(points, closed=None, fill=None, lw=2, edgecolor='black', zorder=2)
+        return patch
+    
 
 
 class Splitter:
@@ -886,6 +718,112 @@ class Flash:
         return LO
 
 
+class batchDistiller:
+    def __init__(self, initial_moles, boiling_rate, pressure=101325.0 ,dx=0.05):
+        self.InitialMoles = initial_moles
+        self.BoilingRate = boiling_rate
+        self.Pressure = pressure
+        self.dx = dx
+
+    def InitialVolume(self, binary_mixture):
+        Vo = self.InitialMoles*binary_mixture.MolarMass/binary_mixture.Density
+        return Vo
+
+    def Temperature(self, binary_mixture):
+        return binary_mixture.Temperature
+
+    def Ki(self, binary_mixture):
+        binary_mixture.Pressure = self.Pressure
+        return binary_mixture.Ki
+
+    def Volatility(self, binary_mixture):
+        Ki = max(self.Ki(binary_mixture))
+        Kj = min(self.Ki(binary_mixture))
+        return Ki/Kj
+
+    def InitialMolarFraction(self, binary_mixture):
+        for n, Psat in enumerate(binary_mixture.Psats):
+            if Psat == max(binary_mixture.Psats):
+                i = n
+        xo = binary_mixture.MolarFractions[i]
+        return xo
+
+    def LiquidFractionList(self, binary_mixture):
+        return np.arange(self.InitialMolarFraction(binary_mixture), 0.0, -self.dx)
+
+    def VaporFractionList(self, binary_mixture):
+        alpha = self.Volatility(binary_mixture)
+        x_list = self.LiquidFractionList(binary_mixture)
+        y_list = []
+        for i, x in enumerate(self.LiquidFractionList(binary_mixture)):
+            y = alpha*x_list[i] / (1 + x_list[i]*(alpha-1))
+            y_list.append(y)
+        # plt.plot(x_list, y_list)
+        # plt.show()
+        return y_list
+
+    def LiquidProfile(self, binary_mixture):
+        x_list = self.LiquidFractionList(binary_mixture)
+        xo = self.InitialMolarFraction(binary_mixture)
+        Wo = self.InitialMoles
+        W_list = []
+        alpha = self.Volatility(binary_mixture)
+        for i, x in enumerate(x_list):
+            if x != 1.0 and x != 0.0:
+                W_list.append(Wo*math.exp((-1/(alpha-1))*(math.log(xo/x)+alpha*math.log((1-x)/(1-xo)))))
+            else:
+                W_list.append(0.0)
+        # plt.plot(x_list, W_list)
+        # plt.show()
+        return W_list
+
+    def AverageDistillateComposition(self, binary_mixture):
+        wo = self.InitialMoles
+        xo = self.InitialMolarFraction(binary_mixture)
+        x_list = self.LiquidFractionList(binary_mixture)
+        y_list = []
+        for i, w in enumerate(self.LiquidProfile(binary_mixture)):
+            if x_list[i] == xo:
+                y_list.append(self.VaporFractionList(binary_mixture)[0])
+            else:
+                y_list.append((wo*xo-w*x_list[i])/(wo-w))
+        # plt.plot(x_list, y_list)
+        # plt.show()
+        return y_list
+
+    def TimeList(self, binary_mixture):
+        t_list = []
+        wo = self.InitialMoles
+        D = self.BoilingRate
+        for i, w in enumerate(self.LiquidProfile(binary_mixture)):
+            t_list.append((wo-w)/D)
+        return t_list
+
+    def Txy(self, binary_mixture, x1=True):
+        binary_mixture.Pressure = self.Pressure
+        if x1 is True:
+            j = 0
+        else:
+            j = 1
+
+        Tsat1 = binary_mixture.Tsats[j]
+        Tsat2 = binary_mixture.Tsats[1-j]
+
+        T_list = np.linspace(Tsat1, Tsat2, 20)
+        Psats_list = []
+        Psat1 = []
+        Psat2 = []
+        x1 = []
+        y1 = []
+        for i, T in enumerate(T_list):
+            binary_mixture.Temperature = T
+            Psats_list.append(binary_mixture.Psats)
+            Psat1.append(Psats_list[i][j])
+            Psat2.append(Psats_list[i][1-j])
+            x1.append((binary_mixture.Pressure - Psat2[i]) / (Psat1[i] - Psat2[i]))
+            y1.append(x1[i] * binary_mixture.gammaUNIFAC[1-j] * Psat1[i] / binary_mixture.Pressure)
+        plt.plot(x1, T_list, y1, T_list)
+        plt.show()
 
 
 
@@ -1079,6 +1017,7 @@ class Cyclone:
         O.ParticleSize = inlet.ParticleSize
         return O
 
+
 class Hydrocyclone:
     def __init__(self, Dc=None, d50=None):
         self._Dc = Dc
@@ -1128,6 +1067,7 @@ class Hydrocyclone:
         O.Pressure = inlet.Pressure
         O.ParticleSize = inlet.ParticleSize
         return O
+
 
 class Scrubber:
     def __init__(self, number_of_nozzles, nozzle_diameter, throat_diameter):
