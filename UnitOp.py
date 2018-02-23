@@ -117,7 +117,7 @@ class Tank:
 
     @property
     def DrawLiquid(self):
-        zero = 0.02
+        zero = 0.01
         X = self.X
         Y = self.Y
         Hc = self.ConeHeight

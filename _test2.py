@@ -50,7 +50,7 @@ h.X = tk.Width * 2
 fig = plt.figure()
 fig.set_dpi(100)
 fig.set_size_inches(8,8)
-ax = plt.axes(xlim=(-0.5, 10), ylim=(-0.5, 5))
+ax = plt.axes(xlim=(-0.5, 8.0), ylim=(-0.5, 2.5))
 # Function Definition #
 def init():
     ax.add_patch(tk.DrawContour)
