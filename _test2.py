@@ -27,7 +27,7 @@ n.V = 0.1
 
 s = Stream([s,o])
 s.wi = [1.0,0.0]
-s.Vf = VolumeFlow(25).m3_h
+s.Vf = VolumeFlow(0).m3_h
 
 #endregion
 
@@ -35,18 +35,27 @@ s.Vf = VolumeFlow(25).m3_h
 
 from UnitOp import *
 tk = recTank(1.0,1.0,1.5)
-#tk = cylTank(1.5,1.5,30)
+
 tk.Mixture = m
 tk.Inlets = [s]
 tk.OutletVolumeFlow = VolumeFlow(50).m3_h
 
 h = Hopper(initial_angle=30,final_angle=40,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
 h.Mixture = n
-h.X = tk.Width * 2
+h.OutletVolumeFlow = VolumeFlow(25).m3_h
+h.X = tk.Width * 1.5
 
-p = Pipe(0.1,10.0)
-p.From = tk
-p.To = h
+ctk = cylTank(1.0,1.0,30)
+ctk.Mixture = n
+ctk.X = h.X + h.Width * 1.5
+
+p1 = Pipe(0.1,10.0)
+p1.From = tk
+p1.To = h
+
+p2 = Pipe(0.1,10.0)
+p2.From = h
+p2.To = ctk
 
 #endregion
 
@@ -61,20 +70,31 @@ ax = plt.axes(xlim=(-0.5, 5.5), ylim=(-0.5, 4.5))
 def init():
     ax.add_patch(tk.DrawContour)
     ax.add_patch(h.DrawContour)
-    return tk.DrawContour,h.DrawContour,
+    ax.add_patch(ctk.DrawContour)
+    return tk.DrawContour,h.DrawContour,ctk.DrawContour
 def animate(i):
+    # Inlets and Outlets
+    p1.InletStream = tk.OutletStream
+    h.Inlets = [p1.OutletStream]
+    p2.InletStream = h.OutletStream
+    ctk.Inlets = [p2.OutletStream]
+    # NextTime function
     tk.NextTime
-    p.InletStream = tk.OutletStream
-    h.Inlets = [p.OutletStream]
     h.NextTime
+    ctk.NextTime
+    # Drawings
     patches = []
     patches.append(tk.DrawLiquid)
+    patches.append(tk.DrawTopArrow)
+    patches.append(tk.DrawBottomArrow)
     patches.append(h.DrawLiquid)
     patches.append(h.DrawTopArrow)
     patches.append(h.DrawBottomArrow)
-    patches.append(tk.DrawTopArrow)
-    patches.append(tk.DrawBottomArrow)
-    patches.append(p.DrawContour)
+    patches.append(ctk.DrawLiquid)
+    patches.append(ctk.DrawTopArrow)
+    patches.append(ctk.DrawBottomArrow)
+    patches.append(p1.DrawContour)
+    patches.append(p2.DrawContour)
     for patch in patches:
         ax.add_patch(patch)
     return patches

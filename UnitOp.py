@@ -134,8 +134,8 @@ class Tank:
 
     @property
     def DrawTopArrow(self):
-        x = self.X + self.Width/2 
-        y = self.Y + self.Height
+        x = self.X + self.Width/2
+        y = self.Y + self.Height + self.ConeHeight
         l = 0.25
         s = 0.05
         patch = plt.arrow(x,y+l,0,-l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
@@ -143,6 +143,8 @@ class Tank:
             patch.set_visible(True)
         else:
             patch.set_visible(False)
+        if self.NextVolume > self.MaxVolume:
+            patch.set_color('red')
         return patch
 
     @property
@@ -277,6 +279,7 @@ class cylTank(Tank):
 
     @property
     def LiquidHeight(self):
+        # TODO: verificar!
         h = (3.0*self.NextVolume*math.tan(math.radians(self.ConeAngle))/math.pi)**(1.0/3.0)
         if self.NextVolume < self.ConeVolume:
             h = h
@@ -430,14 +433,16 @@ class Pipe:
         x1 = self.From.X + self.From.Width/2
         y1 = self.From.Y - 0.25
         x2 = self.To.X + self.To.Width/2
-        y2 = self.To.Y + self.To.Height + 0.25
+        y2 = self.To.Y + self.To.Height + self.To.ConeHeight + 0.25
         xmid = (x1+x2)/2
-        points = [[x1,y1],[xmid,y1],[xmid,y2],[x2,y2]]
+        yFrom = self.From.Y
+        yTo = self.To.Y + self.To.Height + self.To.ConeHeight + 0.25
+        points = [[x1,yFrom],[x1,y1],[xmid,y1],[xmid,y2],[x2,y2],[x2,yTo]]
         patch = plt.Polygon(points, closed=None, fill=None, lw=1, edgecolor='black')
-        if self.OutletStream.VolumeFlow > 0.0:
-            patch.set_visible(True)
-        else:
-            patch.set_visible(False)
+        # if self.OutletStream.VolumeFlow > 0.0:
+        #     patch.set_visible(True)
+        # else:
+        #     patch.set_visible(False)
         return patch
 
 
