@@ -50,14 +50,15 @@ ctk.X = h.X + h.Width * 1.5
 ctk.OutletVolumeFlow = 0.0
 
 p1 = Pipe(0.1,10.0)
+p2 = Pipe(0.1,10.0)
+sh = Shower()
+
 p1.From = tk
 p1.To = h
-
-p2 = Pipe(0.1,10.0)
 p2.From = h
-p2.To = ctk
-
-print(p1.Height, p2.Height)
+p2.To = sh
+sh.From = p2
+sh.To = ctk
 
 #endregion
 
@@ -73,7 +74,8 @@ def init():
     ax.add_patch(tk.DrawContour)
     ax.add_patch(h.DrawContour)
     ax.add_patch(ctk.DrawContour)
-    return tk.DrawContour,h.DrawContour,ctk.DrawContour
+    ax.add_patch(sh.DrawContour)
+    return tk.DrawContour,h.DrawContour,ctk.DrawContour, sh.DrawContour
 def animate(i):
     # Inlets and Outlets
     tk.Inlets = [s]
@@ -81,7 +83,8 @@ def animate(i):
     p1.InletStream = tk.OutletStream
     h.Inlets = [p1.OutletStream]
     p2.InletStream = h.OutletStream
-    ctk.Inlets = [p2.OutletStream]
+    sh.InletStream = p2.OutletStream
+    ctk.Inlets = [sh.OutletStream]
     # NextTime function
     tk.NextTime
     h.NextTime
@@ -100,6 +103,8 @@ def animate(i):
     patches.append(ctk.DrawBottomArrow)
     patches.append(p1.DrawContour)
     patches.append(p2.DrawContour)
+    patches.append(sh.DrawLiquid)
+    patches.append(sh.DrawStream)
     for patch in patches:
         ax.add_patch(patch)
     return patches

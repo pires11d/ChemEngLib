@@ -143,6 +143,12 @@ class Mixture:
             Cp += self.MassFractions[i] * c.SpecificHeat
         return Cp
 
+    @property
+    def Color(self):
+        w0 = self.MassFractions[0]
+        color = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0*0.7))
+        return color
+
 
 class Stream(Mixture):
     def __init__(self, components):

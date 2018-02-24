@@ -129,14 +129,14 @@ class Tank:
             points = [[X+w+zero,Y+h+zero],[X+W/2,Y+zero],[X+W-w-zero,Y+h+zero]]
         else:
             points = [[X+zero*2,Y+h+zero],[X+zero*2,Y+Hc+zero],[X+W/2,Y+zero],[X+W-zero,Y+Hc+zero],[X+W-zero,Y+h+zero]]
-        patch = plt.Polygon(points, closed=True, fill=True, color=self.Color)
+        patch = plt.Polygon(points, closed=True, fill=True, color=self.NextMixture.Color)
         return patch
 
     @property
     def DrawTopArrow(self):
         x = self.X + self.Width/2
         y = self.Y + self.Height
-        l = 0.25
+        l = 0.1
         s = 0.05
         patch = plt.arrow(x,y+l,0,-l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
         if self.InletVolumeFlow > 0.0:
@@ -151,7 +151,7 @@ class Tank:
     def DrawBottomArrow(self):
         x = self.X + self.Width/2 
         y = self.Y
-        l = 0.25
+        l = 0.1
         s = 0.05
         patch = plt.arrow(x,y,0,-l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
         if self.OutletVolumeFlow > 0.0:
@@ -159,12 +159,6 @@ class Tank:
         else:
             patch.set_visible(False)
         return patch
-
-    @property
-    def Color(self):
-        w0 = self.NextMixture.MassFractions[0]
-        color = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0*0.7))
-        return color
 
 
 class Hopper(Tank):
@@ -269,7 +263,7 @@ class cylTank(Tank):
 
     @property
     def CylinderVolume(self):
-        return Cylinder(diameter=self.Diameter,height=self.Height).Volume
+        return Cylinder(diameter=self.Diameter,height=self.CylinderHeight).Volume
 
     @property
     def MaxVolume(self):
@@ -279,13 +273,12 @@ class cylTank(Tank):
 
     @property
     def LiquidHeight(self):
-        # TODO: verificar!
         if self.NextVolume <= self.ConeVolume:
             tan = math.tan(math.radians(self.ConeAngle))
             h = (3.0*self.NextVolume*(tan**2)/math.pi)**(1.0/3.0)
         else:
             V = self.NextVolume - self.ConeVolume
-            dh = V / Cylinder(self.Diameter,self.Height).BaseArea
+            dh = V / Cylinder(self.Diameter,self.CylinderHeight).BaseArea
             h = self.ConeHeight + dh
         return h
 
@@ -355,13 +348,17 @@ class Pipe:
 
     @property
     def DrawContour(self):
+        # if type(self.To) == Shower:
+        #     dy = 0.0
+        # else:
+        #     dy = 0.25
         x1 = self.From.X + self.From.Width/2
         y1 = self.From.Y - 0.25
         x2 = self.To.X + self.To.Width/2
         y2 = self.To.Y + self.To.Height + 0.25
         xmid = (x1+x2)/2
         yFrom = self.From.Y
-        yTo = self.To.Y + self.To.Height + 0.25
+        yTo = self.To.Y + self.To.Height
         points = [[x1,yFrom],[x1,y1],[xmid,y1],[xmid,y2],[x2,y2],[x2,yTo]]
         patch = plt.Polygon(points, closed=None, fill=None, lw=1, edgecolor='black')
         # if self.OutletStream.VolumeFlow > 0.0:
@@ -372,12 +369,26 @@ class Pipe:
 
 
 class Shower:
-    def __init__(self, diameter, length, height = 0.0):
+    def __init__(self, diameter=0.1, length=1.0, height = 0.0):
         self.Name = None
         self.InletStream = None
         self.Diameter = diameter
         self.Length = length
         self.Height = height
+        self.GeometryFactor = 1.0
+        self.From = None
+        self.To = None
+        # Drawing #
+        self.dt = 0.1
+        self.Width = 0
+    
+    @property
+    def X(self):
+        return self.To.X + self.To.Width/2
+        
+    @property
+    def Y(self):
+        return self.To.Y + self.To.Height + 0.25
 
     @property
     def OutletStream(self):
@@ -389,12 +400,32 @@ class Shower:
 
     @property
     def DrawContour(self):
-        return None
+        patch = plt.Circle(xy=(self.X,self.Y),radius=self.Diameter/2,lw=2,fill=True,edgecolor='black',facecolor='white')
+        return patch
 
     @property
     def DrawLiquid(self):
-        return None
+        V = self.OutletStream.VolumeFlow
+        patch = self.DrawContour
+        if V > 0.0:
+            patch.set_facecolor(self.From.OutletStream.Color)
+        else:
+            patch.set_facecolor('white')
+        return patch
 
+    @property
+    def DrawStream(self):
+        V = self.OutletStream.VolumeFlow
+        x = self.X
+        y = self.Y
+        dx = 0.1
+        dy = 0.1
+        points = [[x,y-0.05],[x-dx,y-dy*2-V],[x+dx,y-dy*2-V]]
+        patch = plt.Polygon(points,fill=True,color=self.From.OutletStream.Color)
+        if self.OutletStream.VolumeFlow == 0.0:
+            patch.set_visible(False)
+        return patch
+    
 
 class Splitter:
     def __init__(self, outlet_fractions):
@@ -485,27 +516,32 @@ class Flash:
     def __init__(self, pressure=101325.0):
         self.Name = None
         self.Pressure = pressure
+        self.InletStream = None
 
-    def Ki(self, inlet):
-        inlet.Pressure = self.Pressure
-        return inlet.Ki
+    @property
+    def Ki(self):
+        self.InletStream.Pressure = self.Pressure
+        return self.InletStream.Ki
 
-    def F0(self, inlet):
+    @property
+    def F0(self):
         acc = 0
-        for i, zi in enumerate(inlet.MolarFractions):
-            acc += zi*self.Ki(inlet)[i]
+        for i, zi in enumerate(self.InletStream.MolarFractions):
+            acc += zi*self.Ki[i]
         return acc - 1
 
-    def F1(self, inlet):
+    @property
+    def F1(self):
         acc = 0
-        for i, zi in enumerate(inlet.MolarFractions):
-            acc += zi/self.Ki(inlet)[i]
+        for i, zi in enumerate(self.InletStream.MolarFractions):
+            acc += zi/self.Ki[i]
         return 1 - acc
 
-    def VaporFraction(self, inlet):
-        if self.F0(inlet) <= 0:
+    @property
+    def VaporFraction(self):
+        if self.F0 <= 0:
             return 0.0
-        elif self.F1(inlet) >= 0:
+        elif self.F1 >= 0:
             return 1.0
         else:
             f = 0.5
@@ -513,45 +549,51 @@ class Flash:
             while error > 1e-3:
                 F = 0
                 dF = 0
-                for i, zi in enumerate(inlet.MolarFractions):
-                    F += zi*(self.Ki(inlet)[i] - 1)/(1+f*(self.Ki(inlet)[i]-1))
-                    dF += (-zi*(self.Ki(inlet)[i] - 1)**2.0)/((1+f*(self.Ki(inlet)[i]-1))**2.0)
+                for i, zi in enumerate(self.InletStream.MolarFractions):
+                    F += zi*(self.Ki[i] - 1)/(1+f*(self.Ki[i]-1))
+                    dF += (-zi*(self.Ki[i] - 1)**2.0)/((1+f*(self.Ki[i]-1))**2.0)
                 fnew = f-(F/dF)
                 error = (fnew-f)**2
                 f = fnew
             return f
 
-    def VaporFlow(self, inlet):
-        return self.VaporFraction(inlet) * inlet.MolarFlow
+    @property
+    def VaporFlow(self):
+        return self.VaporFraction * self.InletStream.MolarFlow
 
-    def LiquidFlow(self, inlet):
-        return (1-self.VaporFraction(inlet)) * inlet.MolarFlow
+    @property
+    def LiquidFlow(self):
+        return (1-self.VaporFraction) * self.InletStream.MolarFlow
 
-    def yi(self, inlet):
+    @property
+    def yi(self):
         yi = []
-        for i, zi in enumerate(inlet.MolarFractions):
-            yi.append(self.Ki(inlet)[i]*zi / (1 + self.VaporFraction(inlet) * (self.Ki(inlet)[i] - 1)))
+        for i, zi in enumerate(self.InletStream.MolarFractions):
+            yi.append(self.Ki[i]*zi / (1 + self.VaporFraction * (self.Ki[i] - 1)))
         return yi
 
-    def xi(self, inlet):
+    @property
+    def xi(self):
         xi = []
-        for i, zi in enumerate(inlet.MolarFractions):
-            xi.append(zi/(1+self.VaporFraction(inlet)*(self.Ki(inlet)[i]-1)))
+        for i, zi in enumerate(self.InletStream.MolarFractions):
+            xi.append(zi/(1+self.VaporFraction*(self.Ki[i]-1)))
         return xi
 
-    def VaporOutletStream(self, inlet):
-        VO = Stream(inlet.Components)
-        VO.zi = self.yi(inlet)
-        VO.Nf = self.VaporFlow(inlet)
-        VO.Temperature = inlet.Temperature
+    @property
+    def VaporOutletStream(self):
+        VO = Stream(self.InletStream.Components)
+        VO.zi = self.yi
+        VO.Nf = self.VaporFlow
+        VO.Temperature = self.InletStream.Temperature
         VO.Pressure = self.Pressure
         return VO
 
-    def LiquidOutletStream(self, inlet):
-        LO = Stream(inlet.Components)
-        LO.zi = self.xi(inlet)
-        LO.Nf = self.LiquidFlow(inlet)
-        LO.Temperature = inlet.Temperature
+    @property
+    def LiquidOutletStream(self):
+        LO = Stream(self.InletStream.Components)
+        LO.zi = self.xi
+        LO.Nf = self.LiquidFlow
+        LO.Temperature = self.InletStream.Temperature
         LO.Pressure = self.Pressure
         return LO
 
