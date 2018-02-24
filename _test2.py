@@ -23,7 +23,7 @@ m.V = 1.0
 m.Temperature = 300
 
 s = Stream([s,o])
-s.wi = [0.9,0.1]
+s.wi = [1.0,0.0]
 s.Vf = VolumeFlow(30.0).m3_h
 s.Temperature = 320
 

@@ -6,7 +6,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
-from collections import Counter
+from collections import Counter, defaultdict
 
 #from thermoChemical import *
 from Chemical import *
@@ -268,11 +268,7 @@ class cylTank(Tank):
 
 
 class Splitter:
-    def __init__(self, outlet_fractions, thermo=False):
-        if thermo is True:
-            from thermoChemical import Stream
-        else:
-            from Chemical import Stream
+    def __init__(self, outlet_fractions):
         self.NumberOfOutlets = len(outlet_fractions)
         self.OutletFractions = outlet_fractions
 
@@ -312,25 +308,22 @@ class Mixer:
         return [F/self.OutletFlow(inlets) for F in self.InletFlows(inlets)]
 
     def MassBalance(self, inlets):
-        # TODO: rever!!!
         dc_list = []
-        for i, I in enumerate(inlets):
+        for I in inlets:
             dc_list.append(dict(zip(I.Components, I.MassFlows)))
-        # scott's method for summing n dictionaries:
-        dc = dict(sum((Counter(dci) for dci in dc_list), Counter()))
-        return dc
+        dd = defaultdict(float)
+        for dc in dc_list:
+            for k,v in dc.items():
+                dd[k] += v
+        d = dict(dd)
+        return d
 
     def OutletComponents(self, inlets):
-        return self.MassBalance(inlets).keys()
+        c_names = self.MassBalance(inlets).keys()
+        return c_names
 
     def OutletFractions(self, inlets):
         return [mi/self.OutletFlow(inlets) for mi in self.MassBalance(inlets).values()]
-
-    def OutletSpecificHeat(self, inlets):
-        Cpo = 0
-        for i, I in enumerate(inlets):
-            Cpo += self.InletFractions(inlets)[i] * I.SpecificHeat
-        return Cpo
 
     def OutletTemperature(self, inlets):
         num = 0
