@@ -20,12 +20,14 @@ o.MolarMass = 100e-3
 m = Mixture([s,o])
 m.wi = [0.2,0.8]
 m.V = 1.0
-m.Temperature = 300
+
+n = Mixture([s,o])
+n.wi = [0.8,0.2]
+n.V = 0.1
 
 s = Stream([s,o])
 s.wi = [1.0,0.0]
-s.Vf = VolumeFlow(10.0).m3_h
-s.Temperature = 320
+s.Vf = VolumeFlow(25).m3_h
 
 #endregion
 
@@ -36,10 +38,10 @@ tk = recTank(1.0,1.0,1.5)
 #tk = cylTank(1.5,1.5,30)
 tk.Mixture = m
 tk.Inlets = [s]
-tk.OutletVolumeFlow = VolumeFlow(50.0).m3_h
+tk.OutletVolumeFlow = VolumeFlow(50).m3_h
 
 h = Hopper(initial_angle=30,final_angle=40,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
-h.Mixture = m
+h.Mixture = n
 h.X = tk.Width * 2
 
 p = Pipe(0.1,10.0)

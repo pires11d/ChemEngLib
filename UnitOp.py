@@ -137,7 +137,8 @@ class Tank:
         x = self.X + self.Width/2 
         y = self.Y + self.Height
         l = 0.25
-        patch = plt.arrow(x,y+l,0,-l,head_width=0.1,head_length=0.1,fill=True,color='black',length_includes_head=True)
+        s = 0.05
+        patch = plt.arrow(x,y+l,0,-l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
         if self.InletVolumeFlow > 0.0:
             patch.set_visible(True)
         else:
@@ -149,7 +150,8 @@ class Tank:
         x = self.X + self.Width/2 
         y = self.Y
         l = 0.25
-        patch = plt.arrow(x,y,0,-l,head_width=0.1,head_length=0.1,fill=True,color='black',length_includes_head=True)
+        s = 0.05
+        patch = plt.arrow(x,y,0,-l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
         if self.OutletVolumeFlow > 0.0:
             patch.set_visible(True)
         else:
