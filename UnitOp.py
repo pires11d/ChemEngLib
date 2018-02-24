@@ -16,7 +16,7 @@ from Correlation import *
 
 #region SIMPLE OP'S
 class Tank:
-    def __init__(self, max_volume):
+    def __init__(self, max_volume=1.0):
         self.Name = None
         self.MaxVolume = max_volume
         self.Inlets = []
@@ -517,6 +517,12 @@ class Flash:
         self.Name = None
         self.Pressure = pressure
         self.InletStream = None
+        # Drawing #
+        self.dt = 0.1
+        self.X = 0
+        self.Y = 0
+        self.Height = 1.5
+        self.Width = 1.0
 
     @property
     def Ki(self):
@@ -596,6 +602,17 @@ class Flash:
         LO.Temperature = self.InletStream.Temperature
         LO.Pressure = self.Pressure
         return LO
+
+    @property
+    def DrawContour(self):
+        X = self.X
+        Y = self.Y
+        Hc = 0
+        H = self.Height
+        W = self.Width*1.01
+        points = [[X,Y+H],[X,Y+Hc],[X+W/2,Y],[X+W,Y+Hc],[X+W,Y+H]]
+        patch = plt.Polygon(points, closed=True, fill=None, lw=2, edgecolor='black')
+        return patch
 
 
 class batchDistiller:

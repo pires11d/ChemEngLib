@@ -60,6 +60,10 @@ p2.To = sh
 sh.From = p2
 sh.To = ctk
 
+# f = Flash()
+# f.X = h.X
+# f.Y = h.Height * 2
+
 #endregion
 
 #region ANIMATION
