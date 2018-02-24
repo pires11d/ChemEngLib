@@ -42,7 +42,7 @@ tk.OutletVolumeFlow = VolumeFlow(50).m3_h
 
 h = Hopper(initial_angle=30,final_angle=40,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
 h.Mixture = n
-h.OutletVolumeFlow = VolumeFlow(25).m3_h
+h.OutletVolumeFlow = VolumeFlow(20).m3_h
 h.X = tk.Width * 1.5
 
 ctk = cylTank(1.0,1.0,30)
@@ -82,6 +82,7 @@ def animate(i):
     tk.NextTime
     h.NextTime
     ctk.NextTime
+    #print(tk.NextVolume,h.NextVolume,ctk.NextVolume)
     # Drawings
     patches = []
     patches.append(tk.DrawLiquid)

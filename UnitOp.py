@@ -234,7 +234,7 @@ class recTank(Tank):
 
     @property
     def MaxVolume(self):
-        return Cube(self.Height,self.Length,self.Height).Volume
+        return Cube(self.Height,self.Length,self.Width).Volume
 
     
 class cylTank(Tank):
@@ -280,17 +280,18 @@ class cylTank(Tank):
     @property
     def LiquidHeight(self):
         # TODO: verificar!
-        h = (3.0*self.NextVolume*math.tan(math.radians(self.ConeAngle))/math.pi)**(1.0/3.0)
-        if self.NextVolume < self.ConeVolume:
-            h = h
+        if self.NextVolume <= self.ConeVolume:
+            tan = math.tan(math.radians(self.ConeAngle))
+            h = (3.0*self.NextVolume*(tan**2)/math.pi)**(1.0/3.0)
         else:
             V = self.NextVolume - self.ConeVolume
-            h = h + V / Cylinder(self.Diameter,self.Height).Area
+            dh = V / Cylinder(self.Diameter,self.Height).BaseArea
+            h = self.ConeHeight + dh
         return h
 
     @property
     def LiquidWidth(self):
-        if self.NextVolume < self.ConeVolume:
+        if self.NextVolume <= self.ConeVolume:
             d = Cone(height=self.LiquidHeight,angle=self.ConeAngle).Diameter
         else:
             d = self.Diameter
