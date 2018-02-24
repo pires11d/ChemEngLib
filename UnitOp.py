@@ -290,7 +290,6 @@ class Splitter:
 class Mixer:
     def __init__(self):
         self._Error = 1e9
-        self._Tolerance = 0.1
 
     def InletFlows(self, inlets):
         return [i.MassFlow for i in inlets]
@@ -340,15 +339,44 @@ class Mixer:
         O.wi = self.OutletFractions(inlets)
         O.Mf = self.OutletFlow(inlets)
         O.Temperature = self.OutletTemperature(inlets)
+        O.isElectrolyte = self._isElectrolyte(inlets)
         # O.Pressure = ...
         return O
 
     def _isElectrolyte(self, inlets):
+        elec = []
         for I in inlets:
             if I.isElectrolyte is True:
-                return True
-            else:
-                return False
+                elec.append(I.isElectrolyte)
+        return any(elec)
+
+
+class Pipe:
+    def __init__(self, diameter, length, height = 0.0):
+        self.Diameter = diameter
+        self.Length = length
+        self.Height = height
+
+    def OutletStream(self, inlet):
+        return inlet
+
+    def InletVelocity(self, inlet):
+        return inlet.VolumeFlow / Circle(self.Diameter).Area
+    
+    def HeadLoss(self, inlet):
+        v = self.InletVelocity(inlet)
+        L = self.Length
+        D = self.Diameter
+        f = 64/Re_D(inlet,D)
+        g = 9.81
+        return (f * L * v**2)/(2 * g * D)
+
+    def OutletVelocity(self, inlet):
+        vo = self.InletVelocity(inlet)
+        g = 9.81
+        dz = self.Height
+        lwf = self.HeadLoss(inlet)
+        return math.sqrt(vo**2 - 2*g*(dz + lwf))
 
 
 class shellHX:

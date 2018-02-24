@@ -208,7 +208,3 @@ class Stream(Mixture):
     @property
     def MolarFlows(self):
         return [zi * self.MolarFlow for zi in self.MolarFractions] 
-
-
-    def Velocity(self, diameter):
-        return self.VolumeFlow / Circle(diameter).Area

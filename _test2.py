@@ -42,31 +42,35 @@ h = Hopper(initial_angle=30,final_angle=60,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0
 h.Mixture = m
 h.X = tk.Width * 2
 
-#endregion
-
-#region ANIMATION
-
-# Canvas #
-fig = plt.figure()
-fig.set_dpi(100)
-fig.set_size_inches(8,8)
-ax = plt.axes(xlim=(-0.5, 8.0), ylim=(-0.5, 2.5))
-# Function Definition #
-def init():
-    ax.add_patch(tk.DrawContour)
-    ax.add_patch(h.DrawContour)
-    return tk.DrawContour,h.DrawContour,
-def animate(i):
-    h.Inlets = [tk.OutletStream]
-    tk.NextTime
-    h.NextTime
-    patch1 = tk.DrawLiquid
-    patch2 = h.DrawLiquid
-    ax.add_patch(patch1)
-    ax.add_patch(patch2)
-    return patch1,patch2,
-# Function Call #
-anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
-plt.show()
+p = Pipe(0.1,10.0)
+print(p.InletVelocity(s))
+print(p.OutletVelocity(s))
 
 #endregion
+
+# #region ANIMATION
+
+# # Canvas #
+# fig = plt.figure()
+# fig.set_dpi(100)
+# fig.set_size_inches(8,8)
+# ax = plt.axes(xlim=(-0.5, 8.0), ylim=(-0.5, 2.5))
+# # Function Definition #
+# def init():
+#     ax.add_patch(tk.DrawContour)
+#     ax.add_patch(h.DrawContour)
+#     return tk.DrawContour,h.DrawContour,
+# def animate(i):
+#     h.Inlets = [tk.OutletStream]
+#     tk.NextTime
+#     h.NextTime
+#     patch1 = tk.DrawLiquid
+#     patch2 = h.DrawLiquid
+#     ax.add_patch(patch1)
+#     ax.add_patch(patch2)
+#     return patch1,patch2,
+# # Function Call #
+# anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
+# plt.show()
+
+# #endregion

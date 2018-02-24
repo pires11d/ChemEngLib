@@ -1,7 +1,10 @@
 """Module that contains all transport phenomena correlations (dimensionless numbers)"""
 
-def Re(stream, diameter):
-    return stream.Density * stream.Velocity(diameter) * diameter / stream.Viscosity
+from Geometry import Circle
+
+def Re_D(stream, diameter):
+    v = stream.VolumeFlow / Circle(diameter).Area
+    return stream.Density * v * diameter / stream.Viscosity
 
 def Pr(stream):
     return stream.Viscosity * stream.HeatCapacity / stream.Conductivity
