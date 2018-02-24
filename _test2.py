@@ -3,7 +3,7 @@ from Converter import *
 from matplotlib import animation
 import matplotlib.pyplot as plt
 
-#region STREAMS
+#region COMPONENTS
 
 s = Substance('solvent')
 s.Density0 = 680.0
@@ -24,12 +24,12 @@ m.Temperature = 300
 
 s = Stream([s,o])
 s.wi = [1.0,0.0]
-s.Vf = VolumeFlow(30.0).m3_h
+s.Vf = VolumeFlow(10.0).m3_h
 s.Temperature = 320
 
 #endregion
 
-#region TANK
+#region TANKS
 
 from UnitOp import *
 tk = recTank(1.0,1.0,1.5)
@@ -38,39 +38,53 @@ tk.Mixture = m
 tk.Inlets = [s]
 tk.OutletVolumeFlow = VolumeFlow(50.0).m3_h
 
-h = Hopper(initial_angle=30,final_angle=60,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
+h = Hopper(initial_angle=30,final_angle=40,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
 h.Mixture = m
 h.X = tk.Width * 2
 
 p = Pipe(0.1,10.0)
-print(p.InletVelocity(s))
-print(p.OutletVelocity(s))
+p.From = tk
+p.To = h
 
 #endregion
 
-# #region ANIMATION
+#region ANIMATION
 
-# # Canvas #
-# fig = plt.figure()
-# fig.set_dpi(100)
-# fig.set_size_inches(8,8)
-# ax = plt.axes(xlim=(-0.5, 8.0), ylim=(-0.5, 2.5))
-# # Function Definition #
-# def init():
-#     ax.add_patch(tk.DrawContour)
-#     ax.add_patch(h.DrawContour)
-#     return tk.DrawContour,h.DrawContour,
-# def animate(i):
-#     h.Inlets = [tk.OutletStream]
-#     tk.NextTime
-#     h.NextTime
-#     patch1 = tk.DrawLiquid
-#     patch2 = h.DrawLiquid
-#     ax.add_patch(patch1)
-#     ax.add_patch(patch2)
-#     return patch1,patch2,
-# # Function Call #
-# anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
-# plt.show()
+# Canvas #
+fig = plt.figure()
+fig.set_dpi(100)
+fig.set_size_inches(8,8)
+ax = plt.axes(xlim=(-0.5, 5.5), ylim=(-0.5, 4.5))
+# Function Definition #
+def init():
+    ax.add_patch(tk.DrawContour)
+    ax.add_patch(h.DrawContour)
+    return tk.DrawContour,h.DrawContour,
+def animate(i):
+    tk.NextTime
+    p.InletStream = tk.OutletStream
+    h.Inlets = [p.OutletStream]
+    h.NextTime
+    patch_list = []
+    p1 = tk.DrawLiquid
+    p2 = h.DrawLiquid
+    p3 = h.DrawTopArrow
+    p4 = h.DrawBottomArrow
+    p5 = tk.DrawTopArrow
+    p6 = tk.DrawBottomArrow
+    p7 = p.DrawContour
+    patch_list.append(p1)
+    patch_list.append(p2)
+    patch_list.append(p3)
+    patch_list.append(p4)
+    patch_list.append(p5)
+    patch_list.append(p6)
+    patch_list.append(p7)
+    for patch in patch_list:
+        ax.add_patch(patch)
+    return p1,p2,p3,p4,p5,p6,p7,
+# Function Call #
+anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
+plt.show()
 
-# #endregion
+#endregion
