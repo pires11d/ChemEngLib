@@ -67,24 +67,17 @@ def animate(i):
     p.InletStream = tk.OutletStream
     h.Inlets = [p.OutletStream]
     h.NextTime
-    patch_list = []
-    p1 = tk.DrawLiquid
-    p2 = h.DrawLiquid
-    p3 = h.DrawTopArrow
-    p4 = h.DrawBottomArrow
-    p5 = tk.DrawTopArrow
-    p6 = tk.DrawBottomArrow
-    p7 = p.DrawContour
-    patch_list.append(p1)
-    patch_list.append(p2)
-    patch_list.append(p3)
-    patch_list.append(p4)
-    patch_list.append(p5)
-    patch_list.append(p6)
-    patch_list.append(p7)
-    for patch in patch_list:
+    patches = []
+    patches.append(tk.DrawLiquid)
+    patches.append(h.DrawLiquid)
+    patches.append(h.DrawTopArrow)
+    patches.append(h.DrawBottomArrow)
+    patches.append(tk.DrawTopArrow)
+    patches.append(tk.DrawBottomArrow)
+    patches.append(p.DrawContour)
+    for patch in patches:
         ax.add_patch(patch)
-    return p1,p2,p3,p4,p5,p6,p7,
+    return patches
 # Function Call #
 anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
 plt.show()
