@@ -110,7 +110,7 @@ class Tank:
         X = self.X
         Y = self.Y
         Hc = self.ConeHeight
-        H = Hc + self.Height
+        H = self.Height
         W = self.Width*1.01
         points = [[X,Y+H],[X,Y+Hc],[X+W/2,Y],[X+W,Y+Hc],[X+W,Y+H]]
         patch = plt.Polygon(points, closed=None, fill=None, lw=2, edgecolor='black')
@@ -135,7 +135,7 @@ class Tank:
     @property
     def DrawTopArrow(self):
         x = self.X + self.Width/2
-        y = self.Y + self.Height + self.ConeHeight
+        y = self.Y + self.Height
         l = 0.25
         s = 0.05
         patch = plt.arrow(x,y+l,0,-l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
@@ -189,7 +189,7 @@ class Hopper(Tank):
         self.X = 0 
         self.Y = 0
         self.Height = 1.0
-        self.Width = self.AngularSize/10
+        self.Width = self.AngularSize/self.ExternalRadius
 
     @property
     def ActualHeight(self):
@@ -238,13 +238,13 @@ class recTank(Tank):
 
     
 class cylTank(Tank):
-    def __init__(self, diameter, height, cone_angle=0.0):
+    def __init__(self, diameter, cylinder_height, cone_angle=0.0):
         self.Name = None
         self.Inlets = []
         self.OutletVolumeFlow = 0.0
         self.Mixture = None
         # Cylindrical tank attributes #
-        self.Height = height
+        self.CylinderHeight = cylinder_height
         self.Diameter = diameter
         self.ConeAngle = cone_angle   
         # Drawing #
@@ -298,8 +298,102 @@ class cylTank(Tank):
         return d
     
     @property
+    def Height(self):
+        return self.CylinderHeight + self.ConeHeight
+
+    @property
     def Width(self):
         return self.Diameter
+
+
+class Pipe:
+    def __init__(self, diameter, length):
+        self.Name = None
+        self.InletStream = None
+        self.Diameter = diameter
+        self.Length = length
+        self.InletPressure = 101325.0
+        self.From = None
+        self.To = None
+
+    @property
+    def Height(self):
+        return self.To.Y + self.To.Height - self.From.Y
+
+    @property
+    def OutletStream(self):
+        return self.InletStream
+
+    @property
+    def InletVelocity(self):
+        return self.InletStream.VolumeFlow / Circle(self.Diameter).Area
+    
+    @property
+    def HeadLoss(self):
+        v = self.InletVelocity
+        L = self.Length
+        D = self.Diameter
+        f = 64/Re_D(self.InletStream,D)
+        g = 9.81
+        return (f * L * v**2)/(2 * g * D)
+
+    @property
+    def OutletVelocity(self):
+        vo = self.InletVelocity
+        g = 9.81
+        dz = self.Height
+        lwf = self.HeadLoss
+        return math.sqrt(vo**2 - 2*g*(dz + lwf))
+
+    @property
+    def OutletPressure(self):
+        Po = self.InletPressure
+        g = 9.81
+        dz = self.Height
+        lwf = self.HeadLoss
+        return Po - self.InletStream.Density * g * (dz + lwf)
+
+    @property
+    def DrawContour(self):
+        x1 = self.From.X + self.From.Width/2
+        y1 = self.From.Y - 0.25
+        x2 = self.To.X + self.To.Width/2
+        y2 = self.To.Y + self.To.Height + 0.25
+        xmid = (x1+x2)/2
+        yFrom = self.From.Y
+        yTo = self.To.Y + self.To.Height + 0.25
+        points = [[x1,yFrom],[x1,y1],[xmid,y1],[xmid,y2],[x2,y2],[x2,yTo]]
+        patch = plt.Polygon(points, closed=None, fill=None, lw=1, edgecolor='black')
+        # if self.OutletStream.VolumeFlow > 0.0:
+        #     patch.set_visible(True)
+        # else:
+        #     patch.set_visible(False)
+        return patch
+
+
+class Shower:
+    def __init__(self, diameter, length, height = 0.0):
+        self.Name = None
+        self.InletStream = None
+        self.Diameter = diameter
+        self.Length = length
+        self.Height = height
+
+    @property
+    def OutletStream(self):
+        return self.InletStream
+
+    @property
+    def InletVelocity(self):
+        return self.InletStream.VolumeFlow / Circle(self.Diameter).Area
+
+    @property
+    def DrawContour(self):
+        return None
+
+    @property
+    def DrawLiquid(self):
+        return None
 
 
 class Splitter:
@@ -385,66 +479,6 @@ class Mixer:
             if I.isElectrolyte is True:
                 elec.append(I.isElectrolyte)
         return any(elec)
-
-
-class Pipe:
-    def __init__(self, diameter, length, height = 0.0):
-        self.Name = None
-        self.InletStream = None
-        self.Diameter = diameter
-        self.Length = length
-        self.Height = height
-        self.InletPressure = 101325.0
-        self.From = None
-        self.To = None
-
-    @property
-    def OutletStream(self):
-        return self.InletStream
-
-    @property
-    def InletVelocity(self):
-        return self.InletStream.VolumeFlow / Circle(self.Diameter).Area
-    
-    @property
-    def HeadLoss(self):
-        v = self.InletVelocity
-        L = self.Length
-        D = self.Diameter
-        f = 64/Re_D(self.InletStream,D)
-        g = 9.81
-        return (f * L * v**2)/(2 * g * D)
-
-    def OutletVelocity(self):
-        vo = self.InletVelocity
-        g = 9.81
-        dz = self.Height
-        lwf = self.HeadLoss
-        return math.sqrt(vo**2 - 2*g*(dz + lwf))
-
-    def OutletPressure(self):
-        Po = self.InletPressure
-        g = 9.81
-        dz = self.Height
-        lwf = self.HeadLoss
-        return Po - self.InletStream.Density * g * (dz + lwf)
-
-    @property
-    def DrawContour(self):
-        x1 = self.From.X + self.From.Width/2
-        y1 = self.From.Y - 0.25
-        x2 = self.To.X + self.To.Width/2
-        y2 = self.To.Y + self.To.Height + self.To.ConeHeight + 0.25
-        xmid = (x1+x2)/2
-        yFrom = self.From.Y
-        yTo = self.To.Y + self.To.Height + self.To.ConeHeight + 0.25
-        points = [[x1,yFrom],[x1,y1],[xmid,y1],[xmid,y2],[x2,y2],[x2,yTo]]
-        patch = plt.Polygon(points, closed=None, fill=None, lw=1, edgecolor='black')
-        # if self.OutletStream.VolumeFlow > 0.0:
-        #     patch.set_visible(True)
-        # else:
-        #     patch.set_visible(False)
-        return patch
 
 
 class Flash:

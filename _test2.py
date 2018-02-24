@@ -34,10 +34,9 @@ s.Vf = VolumeFlow(0).m3_h
 #region TANKS
 
 from UnitOp import *
-tk = recTank(1.0,1.0,1.5)
 
+tk = recTank(1.0,1.0,1.5)
 tk.Mixture = m
-tk.Inlets = [s]
 tk.OutletVolumeFlow = VolumeFlow(50).m3_h
 
 h = Hopper(initial_angle=30,final_angle=40,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
@@ -45,9 +44,10 @@ h.Mixture = n
 h.OutletVolumeFlow = VolumeFlow(20).m3_h
 h.X = tk.Width * 1.5
 
-ctk = cylTank(1.0,1.0,30)
+ctk = cylTank(1.2,1.2,30)
 ctk.Mixture = n
 ctk.X = h.X + h.Width * 1.5
+ctk.OutletVolumeFlow = 0.0
 
 p1 = Pipe(0.1,10.0)
 p1.From = tk
@@ -56,6 +56,8 @@ p1.To = h
 p2 = Pipe(0.1,10.0)
 p2.From = h
 p2.To = ctk
+
+print(p1.Height, p2.Height)
 
 #endregion
 
@@ -74,6 +76,8 @@ def init():
     return tk.DrawContour,h.DrawContour,ctk.DrawContour
 def animate(i):
     # Inlets and Outlets
+    tk.Inlets = [s]
+    tk.Inlets = [ctk.OutletStream]
     p1.InletStream = tk.OutletStream
     h.Inlets = [p1.OutletStream]
     p2.InletStream = h.OutletStream
