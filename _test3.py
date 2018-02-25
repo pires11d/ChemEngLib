@@ -49,3 +49,6 @@ print(c.OverFlow(st),c.UnderFlow(st))
 
 hc = Hydrocyclone(d50=1e-3)
 print(hc.OverFlow(st2),hc.UnderFlow(st2))
+
+mm = Mill(power=10000)
+print(mm.OutletParticleSize(st,1.5,10))

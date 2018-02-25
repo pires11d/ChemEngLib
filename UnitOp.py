@@ -1075,8 +1075,10 @@ class Mill:
             return 'Kicks Law'
         elif n == 2.0:
             return 'Rittingers Law'
-        else:
+        elif n == 1.5:
             return 'Bonds Law'
+        else:
+            return 'Unknown Law!'
 
     def Power(self, inlet, n, K):
         if self._power is None:
