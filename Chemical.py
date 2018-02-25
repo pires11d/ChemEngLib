@@ -10,6 +10,7 @@ class Substance:
         self.Name = str(name)
         self.Temperature = 298.15
         self.Pressure = 101325.0
+        self.Phase = None
         self.MolarMass = None
         self.Density0 = None
         self.Viscosity0 = None
@@ -42,7 +43,6 @@ class Mixture:
         self.N = None
         self.Temperature = 298.15
         self.Pressure = 101325.0
-        self.Phase = None
         self.ParticleSize = None
         self.ParticleCharge = None
         # Other attributes #
@@ -55,7 +55,34 @@ class Mixture:
         w0 = self.MassFractions[0]
         color = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0*0.7))
         return color
-        
+    
+    @property
+    def Phase(self):
+        if self.GasContent > 0:
+            if self.LiquidContent == 0:
+                if self.SolidContent == 0:
+                    return 'g'
+                else:
+                    return None
+            else:
+                return None
+        if self.LiquidContent > 0:
+            if self.GasContent == 0:
+                if self.SolidContent == 0:
+                    return 'l'
+                else:
+                    return None
+            else:
+                return None    
+        if self.SolidContent > 0:
+            if self.GasContent == 0:
+                if self.LiquidContent == 0:
+                    return 's'
+                else:
+                    return None
+            else:
+                return None    
+
     @property
     def MolarMass(self):
         MM = 0
@@ -149,6 +176,143 @@ class Mixture:
             Cp += self.MassFractions[i] * c.SpecificHeat
         return Cp
 
+    # Phase properties #
+
+    @property
+    def GasComponents(self):
+        gas_list = []
+        for c in self.Components:
+            if c.Phase == 'g':
+                gas_list.append(c)
+        return gas_list
+    @property
+    def LiquidComponents(self):
+        liquid_list = []
+        for c in self.Components:
+            if c.Phase == 'l':
+                liquid_list.append(c)
+        return liquid_list
+    @property
+    def SolidComponents(self):
+        solid_list = []
+        for c in self.Components:
+            if c.Phase == 's':
+                solid_list.append(c)
+        return solid_list
+
+    @property
+    def GasFractions(self):
+        if self.GasComponents == []:
+            return [0]
+        gf = []
+        for i,c in enumerate(self.Components):
+            if c.Phase == 'g':
+                gf.append(self.MassFractions[i])
+        gf = [gfi / sum(gf) for gfi in gf]
+        return gf
+    @property
+    def LiquidFractions(self):
+        if self.LiquidComponents == []:
+            return [0]
+        lf = []
+        for i,c in enumerate(self.Components):
+            if c.Phase == 'l':
+                lf.append(self.MassFractions[i])
+        lf = [lfi / sum(lf) for lfi in lf]
+        return lf
+    @property
+    def SolidFractions(self):
+        if self.SolidComponents == []:
+            return [0]
+        sf = []
+        for i,c in enumerate(self.Components):
+            if c.Phase == 's':
+                sf.append(self.MassFractions[i])
+        sf = [sfi / sum(sf) for sfi in sf]
+        return sf
+
+    @property
+    def GasContent(self):
+        gc = 0
+        for i,c in enumerate(self.Components):
+            if c.Phase == 'g':
+                gc += self.MassFractions[i]
+        return gc
+    @property
+    def LiquidContent(self):
+        lc = 0
+        for i,c in enumerate(self.Components):
+            if c.Phase == 'l':
+                lc += self.MassFractions[i]
+        return lc
+    @property
+    def SolidContent(self):
+        sc = 0
+        for i,c in enumerate(self.Components):
+            if c.Phase == 's':
+                sc += self.MassFractions[i]
+        return sc
+
+    @property
+    def GasDensity(self):
+        if self.GasContent > 0:
+            rho = 0
+            for i,c in enumerate(self.GasComponents):
+                rho += self.GasFractions[i] / c.Density
+            return 1 / rho
+        else:
+            return None
+    @property
+    def LiquidDensity(self):
+        if self.LiquidContent > 0:
+            rho = 0
+            for i,c in enumerate(self.LiquidComponents):
+                rho += self.LiquidFractions[i] / c.Density
+            return 1 / rho    
+        else:
+            return None
+    @property
+    def SolidDensity(self):
+        if self.SolidContent > 0:
+            rho = 0
+            for i,c in enumerate(self.SolidComponents):
+                rho += self.SolidFractions[i] / c.Density
+            return 1 / rho    
+        else:
+            return None        
+
+    @property
+    def GasViscosity(self):
+        mu = 1.0
+        for i,c in enumerate(self.GasComponents):
+            mu = mu*(c.Viscosity)**self.GasFractions[i]
+        return mu
+    @property
+    def LiquidViscosity(self):
+        mu = 1.0
+        for i,c in enumerate(self.LiquidComponents):
+            mu = mu*(c.Viscosity)**self.LiquidFractions[i]
+        return mu
+
+    @property
+    def GasSpecificHeat(self):
+        Cp = 0
+        for i,c in enumerate(self.GasComponents):
+            Cp += self.GasFractions[i] * c.SpecificHeat
+        return Cp
+    @property
+    def LiquidSpecificHeat(self):
+        Cp = 0
+        for i,c in enumerate(self.LiquidComponents):
+            Cp += self.LiquidFractions[i] * c.SpecificHeat
+        return Cp
+    @property
+    def SolidSpecificHeat(self):
+        Cp = 0
+        for i,c in enumerate(self.SolidComponents):
+            Cp += self.SolidFractions[i] * c.SpecificHeat
+        return Cp
+
 
 class Stream(Mixture):
     def __init__(self, components):
@@ -159,7 +323,6 @@ class Stream(Mixture):
         self.zi = None
         self.Temperature = 298.15
         self.Pressure = 101325.0
-        self.Phase = None
         self.ParticleSize = None
         self.ParticleCharge = None
         # Stream attributes #

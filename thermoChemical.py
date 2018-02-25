@@ -672,6 +672,3 @@ class Stream(Mixture):
         values = [self.MassFlow * ei for ei in self.ElementMolarFractions.values()]
         return OrderedDict(zip(self.Elements, values))
     
-
-    def Velocity(self, diameter):
-        return self.VolumeFlow / Circle(diameter).Area

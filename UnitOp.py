@@ -1203,16 +1203,16 @@ class Cyclone:
         self.stdVelocity = 15.0
         self.stdViscosity = 0.000018
         self.stdDensityVariation = 2000.0
-        self.stdCycloneDiameter = 0.203
+        self.stdDiameter = 0.203
 
-    def CycloneDiameter(self, inlet):
+    def Diameter(self, inlet):
         return math.sqrt(inlet.VolumeFlow / (self.stdVelocity * 0.5 * 0.2))
 
     def DensityVariation(self, inlet):
         return inlet.SolidDensity - inlet.GasDensity
 
     def EffectiveDiameter(self, inlet):
-        return inlet.ParticleSize * (((self.CycloneDiameter(inlet) / self.stdCycloneDiameter) ** 3)
+        return inlet.ParticleSize * (((self.Diameter(inlet) / self.stdDiameter) ** 3)
                                      * (self.stdVolumeFlow / inlet.VolumeFlow)
                                      * (self.stdDensityVariation / self.DensityVariation(inlet))
                                      * (inlet.GasViscosity / self.stdViscosity)) ** 0.5
@@ -1229,7 +1229,7 @@ class Cyclone:
     def OverFlow(self, inlet):
         return inlet.MassFlow - self.UnderFlow(inlet)
 
-    def UnderFlowStream(self, inlet):
+    def SolidOutlet(self, inlet):
         U = Stream(inlet.SolidComponents)
         U.wi = inlet.SolidFractions
         U.Mf = self.UnderFlow(inlet)
@@ -1238,7 +1238,7 @@ class Cyclone:
         U.ParticleSize = inlet.ParticleSize
         return U
         
-    def OverFlowStream(self, inlet):
+    def GasOutlet(self, inlet):
         gf = [wfi * inlet.GasContent * (inlet.MassFlow / self.OverFlow(inlet))
               for wfi in inlet.GasFractions]
         sf = [wsi * inlet.SolidContent * (inlet.MassFlow / self.OverFlow(inlet)) * (1 - self.Efficiency(inlet))
@@ -1252,7 +1252,7 @@ class Cyclone:
         return O
 
 
-class Hydrocyclone:
+class Hydrocyclone(Cyclone):
     def __init__(self, Dc=None, d50=None):
         self.Name = None
         self._Dc = Dc
@@ -1261,7 +1261,7 @@ class Hydrocyclone:
     def DensityVariation(self, inlet):
         return inlet.SolidDensity - inlet.LiquidDensity
 
-    def CycloneDiameter(self, inlet):
+    def Diameter(self, inlet):
         if self._Dc == None:
             return ((self._d50 / (2.438 * inlet.LiquidViscosity)) * (
             (inlet.VolumeFlow ** 1.2) * (self.DensityVariation(inlet)))) ** (1.0 / 3.0)
@@ -1269,7 +1269,7 @@ class Hydrocyclone:
             return self._Dc
 
     def EffectiveDiameter(self, inlet):
-        return 2.438 * (self.CycloneDiameter(inlet) ** 3) * inlet.LiquidViscosity / (
+        return 2.438 * (self.Diameter(inlet) ** 3) * inlet.LiquidViscosity / (
         (inlet.VolumeFlow ** 1.2) * (self.DensityVariation(inlet)))
 
     def Efficiency(self, inlet):
@@ -1281,7 +1281,7 @@ class Hydrocyclone:
     def OverFlow(self, inlet):
         return inlet.MassFlow - self.UnderFlow(inlet)
 
-    def UnderFlowStream(self, inlet):
+    def SolidOutlet(self, inlet):
         U = Stream(inlet.SolidComponents)
         U.wi = inlet.SolidFractions
         U.Mf = self.UnderFlow(inlet)
@@ -1290,7 +1290,7 @@ class Hydrocyclone:
         U.ParticleSize = inlet.ParticleSize
         return U
 
-    def OverFlowStream(self, inlet):
+    def LiquidOutlet(self, inlet):
         lf = [wfi * inlet.LiquidContent * (inlet.MassFlow / self.OverFlow(inlet))
               for wfi in inlet.LiquidFractions]
         sf = [wsi * inlet.SolidContent * (inlet.MassFlow / self.OverFlow(inlet)) * (1 - self.Efficiency(inlet))
@@ -1442,7 +1442,7 @@ class Decanter:
         Rh = W * H / (2 * H + W)
         return Rh
 
-    def OverFlowStream(self, inlet):
+    def LiquidOutlet(self, inlet):
         O = Stream(inlet.LiquidComponents)
         O.wi = inlet.LiquidFractions
         O.Mf = inlet.LiquidContent * inlet.MassFlow
@@ -1450,7 +1450,7 @@ class Decanter:
         O.Pressure = inlet.Pressure
         return O
 
-    def UnderFlowStream(self, inlet):
+    def SolidOutlet(self, inlet):
         U = Stream(inlet.SolidComponents)
         U.wi = inlet.SolidFractions
         U.Mf = inlet.SolidContent * inlet.MassFlow
