@@ -37,7 +37,7 @@ from UnitOp import *
 
 tk = recTank(1.0,1.0,1.5)
 tk.Mixture = m
-tk.OutletVolumeFlow = VolumeFlow(50).m3_h
+tk.OutletVolumeFlow = VolumeFlow(150).m3_h
 
 h = Hopper(initial_angle=30,final_angle=40,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
 h.Mixture = n

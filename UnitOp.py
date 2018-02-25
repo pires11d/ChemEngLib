@@ -422,9 +422,13 @@ class Shower:
         V = self.Outlet.VolumeFlow
         x = self.X
         y = self.Y
-        dx = 0.1
-        dy = 0.1
-        points = [[x,y-0.05],[x-dx,y-dy*2-V],[x+dx,y-dy*2-V]]
+        dx = 10 * V
+        if dx > 0.5:
+            dx = 0.5
+        dy = 10 * V
+        if dy > 0.125:
+            dy = 0.125
+        points = [[x,y-0.05],[x-dx,y-dy*2],[x+dx,y-dy*2]]
         patch = plt.Polygon(points,fill=True,color=self.From.Outlet.Color)
         if self.Outlet.VolumeFlow == 0.0:
             patch.set_visible(False)
@@ -620,12 +624,12 @@ class Flash:
 
 
 class batchDistiller:
-    def __init__(self, initial_moles, boiling_rate, pressure=101325.0 ,dx=0.05):
+    def __init__(self, initial_moles, boiling_rate, pressure=101325.0):
         self.Name = None
         self.InitialMoles = initial_moles
         self.BoilingRate = boiling_rate
         self.Pressure = pressure
-        self.dx = dx
+        self.dx = 0.05
 
     def InitialVolume(self, binary_mixture):
         Vo = self.InitialMoles*binary_mixture.MolarMass/binary_mixture.Density
