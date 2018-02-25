@@ -63,21 +63,37 @@ class Tank:
     def NextMixture(self):
         m = Mixture(self.Mixture.Components)
         m.V = self.NextVolume
+        m.Temperature = self.Mixture.Temperature
+        m.Pressure = self.Mixture.Pressure
+
+        # INLET BALANCE #
         IN = Mixer().OutletFlow(self.Inlets) * self.dt
         if IN != 0:
+            wi_in = Mixer().OutletFractions(self.Inlets)
             m.Temperature = Mixer().OutletTemperature(self.Inlets)
-            wi_list = Mixer().OutletFractions(self.Inlets)
         else:
-            wi_list = self.Mixture.MassFractions
-        m.wi = wi_list
-        wi_list2 = []
+            wi_in = self.Mixture.MassFractions
+        m.wi = wi_in
+        wi_list = []
+
         if self.NextVolume != 0:
-            for i,wi in enumerate(wi_list):
+            # MASS BALANCE #
+            for i,wi in enumerate(wi_in):
                 num = wi * IN + self.Mixture.Mass * self.Mixture.MassFractions[i]
                 den = IN + self.Mixture.Mass
                 wi = num / den
-                wi_list2.append(wi)
-            m.wi = wi_list2
+                wi_list.append(wi)
+            m.wi = wi_list
+            # ENERGY BALANCE #
+            pseudoStream = Stream(self.Mixture.Components)
+            pseudoStream.wi = self.Mixture.MassFractions
+            pseudoStream.Mf = self.Mixture.Mass / self.dt
+            pseudoStream.Temperature = self.Mixture.Temperature
+
+            pseudoInlets = [s for s in self.Inlets]
+            pseudoInlets.append(pseudoStream)
+            m.Temperature = Mixer().OutletTemperature(pseudoInlets)
+
         self.Mixture = m
         return m
 

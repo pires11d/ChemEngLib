@@ -17,17 +17,26 @@ o.Viscosity0 = 1e-5
 o.SpecificHeat0 = 3
 o.MolarMass = 100e-3
 
-m = Mixture([s,o])
-m.wi = [0.2,0.8]
-m.V = 1.0
+# m = Mixture([o,s])
+# m.wi = [0.8,0.2]
+m = Mixture([o])
+m.wi = [1]
+m.V = 1
+m.Temperature = 373
 
-n = Mixture([s,o])
-n.wi = [0.8,0.2]
+# n = Mixture([o,s])
+# n.wi = [0.2,0.8]
+n = Mixture([o])
+n.wi = [1]
 n.V = 0.1
+n.Temperature = 273
 
-s = Stream([s,o])
-s.wi = [1.0,0.0]
-s.Vf = VolumeFlow(0).m3_h
+# st = Stream([o,s])
+# st.wi = [0.0,1.0]
+st = Stream([o])
+st.wi = [1]
+st.Vf = VolumeFlow(0).m3_h
+st.Temperature = 373
 
 #endregion
 
@@ -91,7 +100,7 @@ def animate(i):
         ctk.OutletVolumeFlow = VolumeFlow(20).m3_h
         tk.Inlets = [ctk.Outlet]
     else:
-        tk.Inlets = [s]
+        tk.Inlets = [st]
     # Inlets and Outlets
     p1.Inlet = tk.Outlet
     sh1.Inlet = p1.Outlet

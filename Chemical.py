@@ -52,8 +52,19 @@ class Mixture:
 
     @property
     def Color(self):
-        w0 = self.MassFractions[0]
-        color = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0*0.7))
+        Tmin = 273.15
+        Tmax = 373.15
+        T = self.Temperature
+        if T < Tmin:
+            T = Tmin
+        if T > Tmax:
+            T = Tmax
+        if len(self.MassFractions) > 1:
+            w0 = self.MassFractions[0]
+            color = (w0*1.0, w0*1.0, w0*0.5, w0)
+        else:
+            r = (T - Tmin)/(Tmax-Tmin)
+            color = [r*1.0, 0.0, (1-r)*1.0, 0.5]
         return color
     
     @property
