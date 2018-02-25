@@ -42,6 +42,7 @@ class Mixture:
         self.N = None
         self.Temperature = 298.15
         self.Pressure = 101325.0
+        self.Phase = None
         self.ParticleSize = None
         self.ParticleCharge = None
         # Other attributes #
@@ -49,7 +50,12 @@ class Mixture:
         self._Po = 101325.0
         self.isElectrolyte = False
 
-
+    @property
+    def Color(self):
+        w0 = self.MassFractions[0]
+        color = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0*0.7))
+        return color
+        
     @property
     def MolarMass(self):
         MM = 0
@@ -143,12 +149,6 @@ class Mixture:
             Cp += self.MassFractions[i] * c.SpecificHeat
         return Cp
 
-    @property
-    def Color(self):
-        w0 = self.MassFractions[0]
-        color = ((1-w0)*1.0, (1-w0)*1.0, w0*0.5, (1-w0*0.7))
-        return color
-
 
 class Stream(Mixture):
     def __init__(self, components):
@@ -159,6 +159,7 @@ class Stream(Mixture):
         self.zi = None
         self.Temperature = 298.15
         self.Pressure = 101325.0
+        self.Phase = None
         self.ParticleSize = None
         self.ParticleCharge = None
         # Stream attributes #
