@@ -88,7 +88,7 @@ class Tank:
         return None
 
     @property
-    def OutletStream(self):
+    def Outlet(self):
         O = Stream(self.Mixture.Components)
         O.wi = self.NextMixture.wi
         if self.NextVolume == 0.0:
@@ -138,7 +138,7 @@ class Tank:
         y = self.Y + self.Height
         l = 0.1
         s = 0.05
-        patch = plt.arrow(x,y+l,0,-l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
+        patch = plt.arrow(x,y,0,-l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
         if self.InletVolumeFlow > 0.0:
             patch.set_visible(True)
         else:
@@ -302,7 +302,7 @@ class cylTank(Tank):
 class Pipe:
     def __init__(self, diameter, length):
         self.Name = None
-        self.InletStream = None
+        self.Inlet = None
         self.Diameter = diameter
         self.Length = length
         self.InletPressure = 101325.0
@@ -314,19 +314,19 @@ class Pipe:
         return self.To.Y + self.To.Height - self.From.Y
 
     @property
-    def OutletStream(self):
-        return self.InletStream
+    def Outlet(self):
+        return self.Inlet
 
     @property
     def InletVelocity(self):
-        return self.InletStream.VolumeFlow / Circle(self.Diameter).Area
+        return self.Inlet.VolumeFlow / Circle(self.Diameter).Area
     
     @property
     def HeadLoss(self):
         v = self.InletVelocity
         L = self.Length
         D = self.Diameter
-        f = 64/Re_D(self.InletStream,D)
+        f = 64/Re_D(self.Inlet,D)
         g = 9.81
         return (f * L * v**2)/(2 * g * D)
 
@@ -344,7 +344,7 @@ class Pipe:
         g = 9.81
         dz = self.Height
         lwf = self.HeadLoss
-        return Po - self.InletStream.Density * g * (dz + lwf)
+        return Po - self.Inlet.Density * g * (dz + lwf)
 
     @property
     def DrawContour(self):
@@ -361,7 +361,7 @@ class Pipe:
         yTo = self.To.Y + self.To.Height
         points = [[x1,yFrom],[x1,y1],[xmid,y1],[xmid,y2],[x2,y2],[x2,yTo]]
         patch = plt.Polygon(points, closed=None, fill=None, lw=1, edgecolor='black')
-        # if self.OutletStream.VolumeFlow > 0.0:
+        # if self.Outlet.VolumeFlow > 0.0:
         #     patch.set_visible(True)
         # else:
         #     patch.set_visible(False)
@@ -371,7 +371,7 @@ class Pipe:
 class Shower:
     def __init__(self, diameter=0.1, length=1.0, height = 0.0):
         self.Name = None
-        self.InletStream = None
+        self.Inlet = None
         self.Diameter = diameter
         self.Length = length
         self.Height = height
@@ -391,12 +391,12 @@ class Shower:
         return self.To.Y + self.To.Height + 0.25
 
     @property
-    def OutletStream(self):
-        return self.InletStream
+    def Outlet(self):
+        return self.Inlet
 
     @property
     def InletVelocity(self):
-        return self.InletStream.VolumeFlow / Circle(self.Diameter).Area
+        return self.Inlet.VolumeFlow / Circle(self.Diameter).Area
 
     @property
     def DrawContour(self):
@@ -405,24 +405,24 @@ class Shower:
 
     @property
     def DrawLiquid(self):
-        V = self.OutletStream.VolumeFlow
+        V = self.Outlet.VolumeFlow
         patch = self.DrawContour
         if V > 0.0:
-            patch.set_facecolor(self.From.OutletStream.Color)
+            patch.set_facecolor(self.From.Outlet.Color)
         else:
             patch.set_facecolor('white')
         return patch
 
     @property
     def DrawStream(self):
-        V = self.OutletStream.VolumeFlow
+        V = self.Outlet.VolumeFlow
         x = self.X
         y = self.Y
         dx = 0.1
         dy = 0.1
         points = [[x,y-0.05],[x-dx,y-dy*2-V],[x+dx,y-dy*2-V]]
-        patch = plt.Polygon(points,fill=True,color=self.From.OutletStream.Color)
-        if self.OutletStream.VolumeFlow == 0.0:
+        patch = plt.Polygon(points,fill=True,color=self.From.Outlet.Color)
+        if self.Outlet.VolumeFlow == 0.0:
             patch.set_visible(False)
         return patch
     
@@ -436,7 +436,7 @@ class Splitter:
     def OutletFlows(self, inlet):
         return [inlet.MassFlow * wi for wi in self.OutletFractions]
 
-    def OutletStreams(self, inlet):
+    def Outlets(self, inlet):
         o_list = [Stream(inlet.Components) for Fi in self.OutletFlows(inlet)]
         for i,o in enumerate(o_list):
             o.Components = inlet.Components
@@ -494,7 +494,7 @@ class Mixer:
         T = num / den
         return T
 
-    def OutletStream(self, inlets):
+    def Outlet(self, inlets):
         O = Stream(self.OutletComponents(inlets))
         O.isElectrolyte = self._isElectrolyte(inlets)
         O.wi = self.OutletFractions(inlets)
@@ -516,7 +516,7 @@ class Flash:
     def __init__(self, pressure=101325.0):
         self.Name = None
         self.Pressure = pressure
-        self.InletStream = None
+        self.Inlet = None
         # Drawing #
         self.dt = 0.1
         self.X = 0
@@ -526,20 +526,20 @@ class Flash:
 
     @property
     def Ki(self):
-        self.InletStream.Pressure = self.Pressure
-        return self.InletStream.Ki
+        self.Inlet.Pressure = self.Pressure
+        return self.Inlet.Ki
 
     @property
     def F0(self):
         acc = 0
-        for i, zi in enumerate(self.InletStream.MolarFractions):
+        for i, zi in enumerate(self.Inlet.MolarFractions):
             acc += zi*self.Ki[i]
         return acc - 1
 
     @property
     def F1(self):
         acc = 0
-        for i, zi in enumerate(self.InletStream.MolarFractions):
+        for i, zi in enumerate(self.Inlet.MolarFractions):
             acc += zi/self.Ki[i]
         return 1 - acc
 
@@ -555,7 +555,7 @@ class Flash:
             while error > 1e-3:
                 F = 0
                 dF = 0
-                for i, zi in enumerate(self.InletStream.MolarFractions):
+                for i, zi in enumerate(self.Inlet.MolarFractions):
                     F += zi*(self.Ki[i] - 1)/(1+f*(self.Ki[i]-1))
                     dF += (-zi*(self.Ki[i] - 1)**2.0)/((1+f*(self.Ki[i]-1))**2.0)
                 fnew = f-(F/dF)
@@ -565,41 +565,41 @@ class Flash:
 
     @property
     def VaporFlow(self):
-        return self.VaporFraction * self.InletStream.MolarFlow
+        return self.VaporFraction * self.Inlet.MolarFlow
 
     @property
     def LiquidFlow(self):
-        return (1-self.VaporFraction) * self.InletStream.MolarFlow
+        return (1-self.VaporFraction) * self.Inlet.MolarFlow
 
     @property
     def yi(self):
         yi = []
-        for i, zi in enumerate(self.InletStream.MolarFractions):
+        for i, zi in enumerate(self.Inlet.MolarFractions):
             yi.append(self.Ki[i]*zi / (1 + self.VaporFraction * (self.Ki[i] - 1)))
         return yi
 
     @property
     def xi(self):
         xi = []
-        for i, zi in enumerate(self.InletStream.MolarFractions):
+        for i, zi in enumerate(self.Inlet.MolarFractions):
             xi.append(zi/(1+self.VaporFraction*(self.Ki[i]-1)))
         return xi
 
     @property
-    def VaporOutletStream(self):
-        VO = Stream(self.InletStream.Components)
+    def VaporOutlet(self):
+        VO = Stream(self.Inlet.Components)
         VO.zi = self.yi
         VO.Nf = self.VaporFlow
-        VO.Temperature = self.InletStream.Temperature
+        VO.Temperature = self.Inlet.Temperature
         VO.Pressure = self.Pressure
         return VO
 
     @property
-    def LiquidOutletStream(self):
-        LO = Stream(self.InletStream.Components)
+    def LiquidOutlet(self):
+        LO = Stream(self.Inlet.Components)
         LO.zi = self.xi
         LO.Nf = self.LiquidFlow
-        LO.Temperature = self.InletStream.Temperature
+        LO.Temperature = self.Inlet.Temperature
         LO.Pressure = self.Pressure
         return LO
 
@@ -1108,7 +1108,7 @@ class Mill:
         else:
             return self._d2
 
-    def OutletStream(self, inlet, n, K):
+    def Outlet(self, inlet, n, K):
         O = Stream(inlet.Components)
         O.wi = inlet.MassFractions
         O.Temperature = inlet.Temperature
@@ -1160,7 +1160,7 @@ class Electrostatic:
         eff = 1 - math.exp(-A * uh / Vg)
         return eff
 
-    def GasOutletStream(self, inlet):
+    def GasOutlet(self, inlet):
         gasflow = inlet.MassFlow * (1 - inlet.SolidContent)
         gasflows = [gasflow * wi for wi in inlet.GasFractions]
         solidflow = (1 - self.Efficiency(inlet)) * inlet.MassFlow * inlet.SolidContent
@@ -1175,7 +1175,7 @@ class Electrostatic:
         GO.Pressure = inlet.Pressure
         return GO
 
-    def SolidOutletStream(self, inlet):
+    def SolidOutlet(self, inlet):
         solidflow = self.Efficiency(inlet) * inlet.MassFlow * inlet.SolidContent
         solidflows = [solidflow * wi for wi in inlet.SolidFractions]
         sf = [sf / solidflow for sf in solidflows]
@@ -1355,7 +1355,7 @@ class Scrubber:
     def OutletTemperature(self, gas_inlet, liquid_inlet):
         return Mixer().OutletTemperature([gas_inlet, liquid_inlet])
 
-    def GasOutletStream(self, gas_inlet, liquid_inlet):
+    def GasOutlet(self, gas_inlet, liquid_inlet):
         gasflow = gas_inlet.MassFlow * (1 - gas_inlet.SolidContent)
         gasflows = [gasflow * wi for wi in gas_inlet.GasFractions]
         solidflow = (1 - self.CollectionEfficiency(gas_inlet,
@@ -1372,7 +1372,7 @@ class Scrubber:
         GO.ParticleSize = gas_inlet.ParticleSize
         return GO
 
-    def LiquidOutletStream(self, gas_inlet, liquid_inlet):
+    def LiquidOutlet(self, gas_inlet, liquid_inlet):
         liquidflow = liquid_inlet.MassFlow
         liquidflows = [liquidflow * wi for wi in liquid_inlet.LiquidFractions]
         solidflow = self.CollectionEfficiency(gas_inlet, liquid_inlet) * gas_inlet.SolidContent * gas_inlet.MassFlow

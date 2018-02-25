@@ -51,14 +51,17 @@ ctk.OutletVolumeFlow = 0.0
 
 p1 = Pipe(0.1,10.0)
 p2 = Pipe(0.1,10.0)
-sh = Shower()
+sh1 = Shower()
+sh2 = Shower()
 
 p1.From = tk
-p1.To = h
+p1.To = sh1
+sh1.From = p1
+sh1.To = h
 p2.From = h
-p2.To = sh
-sh.From = p2
-sh.To = ctk
+p2.To = sh2
+sh2.From = p2
+sh2.To = ctk
 
 # f = Flash()
 # f.X = h.X
@@ -73,27 +76,33 @@ fig = plt.figure()
 fig.set_dpi(100)
 fig.set_size_inches(8,8)
 ax = plt.axes(xlim=(-0.5, 5.5), ylim=(-0.5, 4.5))
+
 # Function Definition #
 def init():
     ax.add_patch(tk.DrawContour)
     ax.add_patch(h.DrawContour)
     ax.add_patch(ctk.DrawContour)
-    ax.add_patch(sh.DrawContour)
-    return tk.DrawContour,h.DrawContour,ctk.DrawContour, sh.DrawContour
+    ax.add_patch(sh1.DrawContour)
+    ax.add_patch(sh2.DrawContour)
+    return tk.DrawContour,h.DrawContour,ctk.DrawContour, sh1.DrawContour, sh2.DrawContour
+
 def animate(i):
+    if i > 100:
+        tk.Inlets.append(ctk.Outlet)
+        ctk.OutletVolumeFlow = VolumeFlow(20).m3_h
     # Inlets and Outlets
     tk.Inlets = [s]
-    tk.Inlets = [ctk.OutletStream]
-    p1.InletStream = tk.OutletStream
-    h.Inlets = [p1.OutletStream]
-    p2.InletStream = h.OutletStream
-    sh.InletStream = p2.OutletStream
-    ctk.Inlets = [sh.OutletStream]
+    tk.Inlets = [ctk.Outlet]
+    p1.Inlet = tk.Outlet
+    sh1.Inlet = p1.Outlet
+    h.Inlets = [sh1.Outlet]
+    p2.Inlet = h.Outlet
+    sh2.Inlet = p2.Outlet
+    ctk.Inlets = [sh2.Outlet]
     # NextTime function
     tk.NextTime
     h.NextTime
     ctk.NextTime
-    #print(tk.NextVolume,h.NextVolume,ctk.NextVolume)
     # Drawings
     patches = []
     patches.append(tk.DrawLiquid)
@@ -107,11 +116,15 @@ def animate(i):
     patches.append(ctk.DrawBottomArrow)
     patches.append(p1.DrawContour)
     patches.append(p2.DrawContour)
-    patches.append(sh.DrawLiquid)
-    patches.append(sh.DrawStream)
+    patches.append(sh1.DrawLiquid)
+    patches.append(sh1.DrawStream)
+    patches.append(sh2.DrawLiquid)
+    patches.append(sh2.DrawStream)
     for patch in patches:
         ax.add_patch(patch)
     return patches
+    #print(tk.NextVolume,h.NextVolume,ctk.NextVolume)
+
 # Function Call #
 anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
 plt.show()
