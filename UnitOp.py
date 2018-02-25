@@ -92,8 +92,12 @@ class Tank:
         O = Stream(self.Mixture.Components)
         O.wi = self.NextMixture.wi
         if self.NextVolume == 0.0:
-            self.OutletVolumeFlow = 0.0 + self.InletVolumeFlow
-        O.Vf = self.OutletVolumeFlow
+            if self.InletVolumeFlow > 0.0:
+                O.Vf = self.InletVolumeFlow
+            else:
+                O.Vf = 0.0
+        else:
+            O.Vf = self.OutletVolumeFlow
         O.Temperature = self.NextMixture.Temperature
         return O
 

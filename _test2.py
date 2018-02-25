@@ -87,12 +87,12 @@ def init():
     return tk.DrawContour,h.DrawContour,ctk.DrawContour, sh1.DrawContour, sh2.DrawContour
 
 def animate(i):
-    if i > 100:
-        tk.Inlets.append(ctk.Outlet)
+    if i > 50:
         ctk.OutletVolumeFlow = VolumeFlow(20).m3_h
+        tk.Inlets = [ctk.Outlet]
+    else:
+        tk.Inlets = [s]
     # Inlets and Outlets
-    tk.Inlets = [s]
-    tk.Inlets = [ctk.Outlet]
     p1.Inlet = tk.Outlet
     sh1.Inlet = p1.Outlet
     h.Inlets = [sh1.Outlet]
