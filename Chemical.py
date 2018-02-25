@@ -68,6 +68,22 @@ class Mixture:
         return color
     
     @property
+    def Hatch(self):
+        if self.SolidContent > 0:
+            hatch = '.'
+            if self.SolidContent > 0.2:
+                hatch = '..'
+                if self.SolidContent > 0.4:
+                    hatch = '...'
+                    if self.SolidContent > 0.6:
+                        hatch = '***'
+                        if self.SolidContent > 0.8:
+                            hatch = '****'
+        else:
+            hatch = None
+        return hatch
+
+    @property
     def Phase(self):
         if self.GasContent > 0:
             if self.LiquidContent == 0:

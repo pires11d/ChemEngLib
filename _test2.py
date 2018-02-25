@@ -17,24 +17,32 @@ o.Viscosity0 = 1e-5
 o.SpecificHeat0 = 3
 o.MolarMass = 100e-3
 
-# m = Mixture([o,s])
-# m.wi = [0.8,0.2]
-m = Mixture([o])
-m.wi = [1]
+i = Substance('inert')
+i.Phase = 's'
+i.Density0 = 900.0
+i.SpecificHeat0 = 3
+i.MolarMass = 100e-3
+
+comp = [i,s]
+
+m = Mixture(comp)
+m.wi = [0.8,0.2]
+# m = Mixture([o])
+# m.wi = [1]
 m.V = 1
 m.Temperature = 373
 
-# n = Mixture([o,s])
-# n.wi = [0.2,0.8]
-n = Mixture([o])
-n.wi = [1]
+n = Mixture(comp)
+n.wi = [0.2,0.8]
+# n = Mixture([o])
+# n.wi = [1]
 n.V = 0.1
 n.Temperature = 273
 
-# st = Stream([o,s])
-# st.wi = [0.0,1.0]
-st = Stream([o])
-st.wi = [1]
+st = Stream(comp)
+st.wi = [0.0,1.0]
+# st = Stream([o])
+# st.wi = [1]
 st.Vf = VolumeFlow(0).m3_h
 st.Temperature = 373
 

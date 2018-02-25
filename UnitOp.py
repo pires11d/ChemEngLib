@@ -149,7 +149,9 @@ class Tank:
             points = [[X+w+zero,Y+h+zero],[X+W/2,Y+zero],[X+W-w-zero,Y+h+zero]]
         else:
             points = [[X+zero*2,Y+h+zero],[X+zero*2,Y+Hc+zero],[X+W/2,Y+zero],[X+W-zero,Y+Hc+zero],[X+W-zero,Y+h+zero]]
-        patch = plt.Polygon(points, closed=True, fill=True, color=self.NextMixture.Color)
+        patch = plt.Polygon(points, closed=True, fill=True, 
+                            color=self.NextMixture.Color,
+                            hatch=self.NextMixture.Hatch)
         return patch
 
     @property
