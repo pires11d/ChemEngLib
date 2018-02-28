@@ -45,7 +45,10 @@ class Mixture:
         self.Pressure = 101325.0
         self.ParticleSize = None
         self.ParticleCharge = None
+        # Equilibrium #
+        self.Ki = None
         # Other attributes #
+        self._phase = None
         self._To = 273.15
         self._Po = 101325.0
         self.isElectrolyte = False
@@ -61,14 +64,18 @@ class Mixture:
             T = Tmax
         if len(self.MassFractions) > 1:
             w0 = self.MassFractions[0]
-            color = (w0*1.0, w0*1.0, w0*0.5, w0)
+            color = (w0, w0, 1-w0, 0.5)
         else:
             r = (T - Tmin)/(Tmax-Tmin)
-            color = [r*1.0, 0.0, (1-r)*1.0, 0.5]
+            color = [r, 1-r, 1-r, 0.5]
         return color
     
     @property
     def Hatch(self):
+        hatch = None
+        if self.Phase == 'g':
+            hatch = '..'
+            return hatch
         if self.SolidContent > 0:
             hatch = '.'
             if self.SolidContent > 0.2:
@@ -76,15 +83,15 @@ class Mixture:
                 if self.SolidContent > 0.4:
                     hatch = '...'
                     if self.SolidContent > 0.6:
-                        hatch = '***'
+                        hatch = '....'
                         if self.SolidContent > 0.8:
-                            hatch = '****'
-        else:
-            hatch = None
+                            hatch = '.....'
         return hatch
 
     @property
     def Phase(self):
+        if self._phase != None:
+            return self._phase
         if self.GasContent > 0:
             if self.LiquidContent == 0:
                 if self.SolidContent == 0:
@@ -360,7 +367,10 @@ class Stream(Mixture):
         self.Vf = None
         self.Vfo = None
         self.Nf = None
+        # Equilibrium #
+        self.Ki = None
         # Other attributes #
+        self._phase = None
         self._To = 273.15
         self._Po = 101325.0
         self.isElectrolyte = False
@@ -378,7 +388,7 @@ class Stream(Mixture):
     def VolumeFlow(self):
         if self.Vf is None:
             if self.Vfo is None:
-                return self.Mf / self.Density
+                return self.MassFlow / self.Density
             else:
                 return self.NormalVolumeFlow * (self._Po / self._To) * (self.Temperature / self.Pressure)
         else:

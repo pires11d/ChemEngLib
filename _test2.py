@@ -23,26 +23,23 @@ i.Density0 = 900.0
 i.SpecificHeat0 = 3
 i.MolarMass = 100e-3
 
-comp = [i,s]
+comp = [o]
 
 m = Mixture(comp)
-m.wi = [0.8,0.2]
-# m = Mixture([o])
-# m.wi = [1]
+# m.wi = [0.8,0.2]
+m.wi = [1]
 m.V = 1
 m.Temperature = 373
 
 n = Mixture(comp)
-n.wi = [0.2,0.8]
-# n = Mixture([o])
-# n.wi = [1]
+# n.wi = [0.2,0.8]
+n.wi = [1]
 n.V = 0.1
 n.Temperature = 273
 
 st = Stream(comp)
-st.wi = [0.0,1.0]
-# st = Stream([o])
-# st.wi = [1]
+# st.wi = [0.0,1.0]
+st.wi = [1]
 st.Vf = VolumeFlow(0).m3_h
 st.Temperature = 373
 
@@ -80,10 +77,6 @@ p2.To = sh2
 sh2.From = p2
 sh2.To = ctk
 
-# f = Flash()
-# f.X = h.X
-# f.Y = h.Height * 2
-
 #endregion
 
 #region ANIMATION
@@ -104,7 +97,8 @@ def init():
     return tk.DrawContour,h.DrawContour,ctk.DrawContour, sh1.DrawContour, sh2.DrawContour
 
 def animate(i):
-    if i > 50:
+    # print(tk.NextVolume,h.NextVolume,ctk.NextVolume)
+    if i > 500:
         ctk.OutletVolumeFlow = VolumeFlow(20).m3_h
         tk.Inlets = [ctk.Outlet]
     else:
@@ -140,7 +134,6 @@ def animate(i):
     for patch in patches:
         ax.add_patch(patch)
     return patches
-    #print(tk.NextVolume,h.NextVolume,ctk.NextVolume)
 
 # Function Call #
 anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)

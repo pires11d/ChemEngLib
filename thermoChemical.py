@@ -633,7 +633,7 @@ class Stream(Mixture):
     def VolumeFlow(self):
         if self.Vf is None:
             if self.Vfo is None:
-                return self.Mf / self.Density
+                return self.MassFlow / self.Density
             else:
                 return self.NormalVolumeFlow * (self._Po / self._To) * (self.Temperature / self.Pressure)
         else:

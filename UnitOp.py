@@ -149,8 +149,8 @@ class Tank:
             points = [[X+w+zero,Y+h+zero],[X+W/2,Y+zero],[X+W-w-zero,Y+h+zero]]
         else:
             points = [[X+zero*2,Y+h+zero],[X+zero*2,Y+Hc+zero],[X+W/2,Y+zero],[X+W-zero,Y+Hc+zero],[X+W-zero,Y+h+zero]]
-        patch = plt.Polygon(points, closed=True, fill=True, 
-                            color=self.NextMixture.Color,
+        patch = plt.Polygon(points, closed=True, fill=True,
+                            facecolor=self.NextMixture.Color,
                             hatch=self.NextMixture.Hatch)
         return patch
 
@@ -328,12 +328,31 @@ class Pipe:
         self.Diameter = diameter
         self.Length = length
         self.InletPressure = 101325.0
-        self.From = None
-        self.To = None
+        self.FromBottom = None
+        self.FromTop = None
+        self.FromSide = None
+        self.ToBottom = None
+        self.ToTop = None
+        self.ToSide = None
 
     @property
     def Height(self):
-        return self.To.Y + self.To.Height - self.From.Y
+        # Begin:
+        if self.FromBottom != None:
+            y0 = self.FromBottom.Y
+        elif self.FromTop != None:
+            y0 = self.FromTop.Y + self.FromTop.Height
+        else:
+            y0 = self.FromSide.Y + self.FromSide.Height/2
+        # End:
+        if self.ToBottom != None:
+            y1 = self.ToBottom.Y
+        elif self.ToTop != None:
+            y1 = self.ToTop.Y + self.ToTop.Height
+        else:
+            y1 = self.ToSide.Y + self.ToSide.Height/2
+        # Difference:
+        return y1 - y0
 
     @property
     def Outlet(self):
@@ -370,23 +389,42 @@ class Pipe:
 
     @property
     def DrawContour(self):
-        # if type(self.To) == Shower:
-        #     dy = 0.0
-        # else:
-        #     dy = 0.25
-        x1 = self.From.X + self.From.Width/2
-        y1 = self.From.Y - 0.25
-        x2 = self.To.X + self.To.Width/2
-        y2 = self.To.Y + self.To.Height + 0.25
-        xmid = (x1+x2)/2
-        yFrom = self.From.Y
-        yTo = self.To.Y + self.To.Height
-        points = [[x1,yFrom],[x1,y1],[xmid,y1],[xmid,y2],[x2,y2],[x2,yTo]]
+        # Assigning 'From' connection:
+        if self.FromBottom != None:
+            xFrom = self.FromBottom.X + self.FromBottom.Width/2
+            yFrom = self.FromBottom.Y
+            x1 = xFrom
+            y1 = yFrom - 0.25
+        elif self.FromTop != None:
+            xFrom = self.FromTop.X + self.FromTop.Width/2
+            yFrom = self.FromTop.Y + self.FromTop.Height
+            x1 = xFrom
+            y1 = yFrom + 0.25
+        else:
+            xFrom = self.FromSide.X
+            yFrom = self.FromSide.Y + self.FromSide.Height/2
+            x1 = xFrom + 0.25
+            y1 = yFrom
+        # Assigning 'To' connection:
+        if self.ToBottom != None:
+            xTo = self.ToBottom.X + self.ToBottom.Width/2
+            yTo = self.ToBottom.Y
+            x2 = xTo
+            y2 = yTo - 0.25
+        elif self.ToTop != None:
+            xTo = self.ToTop.X + self.ToTop.Width/2
+            yTo = self.ToTop.Y + self.ToTop.Height
+            x2 = xTo
+            y2 = yTo + 0.25
+        else:
+            xTo = self.ToSide.X
+            yTo = self.ToSide.Y + self.ToSide.Height/2
+            x2 = xTo - 0.25
+            y2 = yTo
+        xmid = (xFrom+xTo)/2
+       # Creating Line
+        points = [[xFrom,yFrom],[x1,y1],[xmid,y1],[xmid,y2],[x2,y2],[xTo,yTo]]
         patch = plt.Polygon(points, closed=None, fill=None, lw=1, edgecolor='black')
-        # if self.Outlet.VolumeFlow > 0.0:
-        #     patch.set_visible(True)
-        # else:
-        #     patch.set_visible(False)
         return patch
 
 
@@ -543,12 +581,15 @@ class Flash:
         self.Name = None
         self.Pressure = pressure
         self.Inlet = None
+        self.From = None
+        self.VaporTo = None
+        self.LiquidTo = None
         # Drawing #
         self.dt = 0.1
         self.X = 0
         self.Y = 0
         self.Height = 1.5
-        self.Width = 1.0
+        self.Width = 0.5
 
     @property
     def Ki(self):
@@ -618,6 +659,7 @@ class Flash:
         VO.Nf = self.VaporFlow
         VO.Temperature = self.Inlet.Temperature
         VO.Pressure = self.Pressure
+        VO._phase = 'g'
         return VO
 
     @property
@@ -627,6 +669,7 @@ class Flash:
         LO.Nf = self.LiquidFlow
         LO.Temperature = self.Inlet.Temperature
         LO.Pressure = self.Pressure
+        LO._phase = 'l'
         return LO
 
     @property
@@ -639,6 +682,104 @@ class Flash:
         points = [[X,Y+H],[X,Y+Hc],[X+W/2,Y],[X+W,Y+Hc],[X+W,Y+H]]
         patch = plt.Polygon(points, closed=True, fill=None, lw=2, edgecolor='black')
         return patch
+
+    @property
+    def DrawLiquid(self):
+        X = self.X
+        Y = self.Y
+        Hc = 0
+        H = self.Height*(1-self.VaporFraction)
+        W = self.Width
+        points = [[X,Y+H],[X,Y+Hc],[X+W/2,Y],[X+W,Y+Hc],[X+W,Y+H]]
+        patch = plt.Polygon(points, closed=True, fill=True, color=self.Inlet.Color)
+        return patch   
+
+    @property
+    def DrawVapor(self):
+        X = self.X
+        Y = self.Y + self.Height*(1-self.VaporFraction)
+        Hc = 0
+        H = self.Height*(self.VaporFraction)
+        W = self.Width
+        points = [[X,Y+H],[X,Y+Hc],[X+W/2,Y],[X+W,Y+Hc],[X+W,Y+H]]
+        patch = plt.Polygon(points, closed=True, fill=None, color=self.VaporOutlet.Color, hatch=self.VaporOutlet.Hatch)
+        return patch 
+
+    @property
+    def DrawInletArrow(self):
+        x = self.X
+        y = self.Y + self.Height/2
+        l = 0.1
+        s = 0.05
+        patch = plt.arrow(x-l,y,l,0,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
+        if self.Inlet.MolarFlow > 0.0:
+            patch.set_visible(True)
+        else:
+            patch.set_visible(False)
+        return patch
+
+    @property
+    def DrawTopArrow(self):
+        x = self.X + self.Width/2
+        y = self.Y + self.Height
+        l = 0.1
+        s = 0.05
+        patch = plt.arrow(x,y,0,l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
+        if self.VaporFlow > 0.0:
+            patch.set_visible(True)
+        else:
+            patch.set_visible(False)
+        return patch
+
+    @property
+    def DrawBottomArrow(self):
+        x = self.X + self.Width/2
+        y = self.Y
+        l = 0.1
+        s = 0.05
+        patch = plt.arrow(x,y,0,-l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
+        if self.LiquidFlow > 0.0:
+            patch.set_visible(True)
+        else:
+            patch.set_visible(False)
+        return patch
+
+    @property
+    def FromTop(self):
+        f = Flash()
+        f.X = self.X
+        f.Y = self.Y
+        f.Width = self.Width
+        f.Height = self.Height
+        return f
+
+    @property
+    def FromBottom(self):
+        f = Flash()
+        f.X = self.X
+        f.Y = self.Y + self.Height
+        f.Width = self.Width
+        f.Height = self.Height
+        return f     
+
+
+class Distiller:
+    def __init__(self, max_volume, pressure=101325.0):
+        self.Name = None
+        self.MaxVolume = max_volume
+        self.Pressure = pressure
+        self.Mixture = None
+        # Drawing #
+        self.dt = 0.1
+        self.X = 0 
+        self.Y = 0
+        self.Height = 1.5
+        self.Width = 0.5
+
+    @property
+    def Ki(self):
+        self.Mixture.Pressure = self.Pressure
+        return self.Mixture.Ki
 
 
 class batchDistiller:

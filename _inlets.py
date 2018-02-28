@@ -2,6 +2,8 @@ from Chemical import *
 from Converter import *
 from UnitOp import *
 
+#region SUBSTANCES:
+
 g = Substance('air')
 g.Phase = 'g'
 g.Density0 = 1.0
@@ -29,26 +31,34 @@ i.Density0 = 900.0
 i.SpecificHeat0 = 3
 i.MolarMass = 100e-3
 
+#endregion
 
-m = Mixture([s,o,i])
-m.wi = [0.2,0.7,0.1]
-m.V = 1.0
+#region MIXTURES:
+
+comp = [s,o]
+
+m = Mixture(comp)
+m.V = 0
+m.wi = [0.5,0.5]
+m.Ki = [10,0.2]
+
+#endregion
+
+#region STREAMS:
 
 st = Stream([g,i])
 st.wi = [0.8,0.2]
-st.Mf = 1.0
+st.Mf = 1
 st.ParticleSize = 1e-3
 
 st2 = Stream([s,i])
 st2.wi = st.wi
-st2.Mf = 1.0
+st2.Mf = 1
 st2.ParticleSize = 1e-3
 
-c = Cyclone()
-print(c.OverFlow(st),c.UnderFlow(st))
+F = Stream(comp)
+F.wi = [0.2,0.8]
+F.Nf = 100
+F.Ki = [10,0.2]
 
-hc = Hydrocyclone(d50=1e-3)
-print(hc.OverFlow(st2),hc.UnderFlow(st2))
-
-mm = Mill(power=10000)
-print(mm.OutletParticleSize(st,1.5,10))
+#endregion
