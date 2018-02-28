@@ -1,65 +1,20 @@
 from Chemical import *
 from Converter import *
-from matplotlib import animation
-import matplotlib.pyplot as plt
-
-#region COMPONENTS
-
-s = Substance('solvent')
-s.Density0 = 680.0
-s.Viscosity0 = 1e-3
-s.SpecificHeat0 = 2
-s.MolarMass = 40e-3
-
-o = Substance('oil')
-o.Density0 = 900.0
-o.Viscosity0 = 1e-5
-o.SpecificHeat0 = 3
-o.MolarMass = 100e-3
-
-i = Substance('inert')
-i.Phase = 's'
-i.Density0 = 900.0
-i.SpecificHeat0 = 3
-i.MolarMass = 100e-3
-
-comp = [o]
-
-m = Mixture(comp)
-# m.wi = [0.8,0.2]
-m.wi = [1]
-m.V = 1
-m.Temperature = 373
-
-n = Mixture(comp)
-# n.wi = [0.2,0.8]
-n.wi = [1]
-n.V = 0.1
-n.Temperature = 273
-
-st = Stream(comp)
-# st.wi = [0.0,1.0]
-st.wi = [1]
-st.Vf = VolumeFlow(0).m3_h
-st.Temperature = 373
-
-#endregion
-
-#region TANKS
-
 from UnitOp import *
+from _inputs import *
+
 
 tk = recTank(1.0,1.0,1.5)
-tk.Mixture = m
+tk.Mixture = m0
 tk.OutletVolumeFlow = VolumeFlow(50).m3_h
 
 h = Hopper(initial_angle=30,final_angle=40,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
-h.Mixture = n
+h.Mixture = n0
 h.OutletVolumeFlow = VolumeFlow(20).m3_h
 h.X = tk.Width * 1.5
 
 ctk = cylTank(1.2,1.2,30)
-ctk.Mixture = n
+ctk.Mixture = n0
 ctk.X = h.X + h.Width * 1.5
 ctk.OutletVolumeFlow = 0.0
 
@@ -68,18 +23,18 @@ p2 = Pipe(0.1,10.0)
 sh1 = Shower()
 sh2 = Shower()
 
-p1.From = tk
-p1.To = sh1
+p1.FromBottom = tk
+p1.ToTop = sh1
 sh1.From = p1
 sh1.To = h
-p2.From = h
-p2.To = sh2
+p2.FromBottom = h
+p2.ToTop = sh2
 sh2.From = p2
 sh2.To = ctk
 
 #endregion
 
-#region ANIMATION
+#region ANIMATION:
 
 # Canvas #
 fig = plt.figure()
@@ -102,7 +57,7 @@ def animate(i):
         ctk.OutletVolumeFlow = VolumeFlow(20).m3_h
         tk.Inlets = [ctk.Outlet]
     else:
-        tk.Inlets = [st]
+        tk.Inlets = [st0]
     # Inlets and Outlets
     p1.Inlet = tk.Outlet
     sh1.Inlet = p1.Outlet

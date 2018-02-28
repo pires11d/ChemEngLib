@@ -2,6 +2,7 @@ from Chemical import *
 from Converter import *
 from UnitOp import *
 
+
 #region SUBSTANCES:
 
 g = Substance('air')
@@ -35,16 +36,39 @@ i.MolarMass = 100e-3
 
 #region MIXTURES:
 
-comp = [s,o]
+comp = [o,s]
+
+m0 = Mixture(comp)
+m0.wi = [0.8,0.2]
+# m0.wi = [1]
+m0.V = 1
+m0.Temperature = 373
+
+n0 = Mixture(comp)
+n0.wi = [0.2,0.8]
+# n0.wi = [1]
+n0.V = 0.1
+n0.Temperature = 273
 
 m = Mixture(comp)
-m.V = 0
+m.N = 0.0
 m.wi = [0.5,0.5]
-m.Ki = [10,0.2]
+m.Ki = [0.2,1]
+
+n = Mixture(comp)
+n.N = 100
+n.zi = [0.5,0.5]
+n.Ki = [0.2,1] 
 
 #endregion
 
 #region STREAMS:
+
+st0 = Stream(comp)
+st0.wi = [0.0,1.0]
+# st0.wi = [1]
+st0.Vf = VolumeFlow(0).m3_h
+st0.Temperature = 373
 
 st = Stream([g,i])
 st.wi = [0.8,0.2]

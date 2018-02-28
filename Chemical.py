@@ -64,7 +64,7 @@ class Mixture:
             T = Tmax
         if len(self.MassFractions) > 1:
             w0 = self.MassFractions[0]
-            color = (w0, w0, 1-w0, 0.5)
+            color = (w0, w0, (1-w0)/2, 0.7)
         else:
             r = (T - Tmin)/(Tmax-Tmin)
             color = [r, 1-r, 1-r, 0.5]
@@ -175,7 +175,10 @@ class Mixture:
                 V = self.M / self.Density
             else:
                 # Ideal gas #
-                V = self.N * 8.314 * self.Temperature / self.Pressure 
+                if self.Phase == 'g':
+                    V = self.N * 8.314 * self.Temperature / self.Pressure 
+                else:
+                    V = self.N * self.MolarMass / self.Density
         else:
             V = self.V
         return V
@@ -186,7 +189,10 @@ class Mixture:
                 N = self.M / self.MolarMass
             else:
                 # Ideal gas #
-                N = (self.Pressure * self.V) / (8.314 * self.Temperature)
+                if self.Phase == 'g':
+                    N = (self.Pressure * self.V) / (8.314 * self.Temperature)
+                else:
+                    N = self.V * self.Density / self.MolarMass
         else:
             N = self.N
         return N

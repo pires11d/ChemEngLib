@@ -1,7 +1,8 @@
 from Chemical import *
 from Converter import *
 from UnitOp import *
-from _inlets import *
+from _inputs import *
+
 
 # c = Cyclone()
 # print(c.OverFlow(st),c.UnderFlow(st))
@@ -30,7 +31,8 @@ p1.ToTop = t1
 p2.FromBottom = fl
 p2.ToTop = t2
 
-#region ANIMATION
+
+#region ANIMATION:
 
 # Canvas #
 fig = plt.figure()
@@ -58,7 +60,7 @@ def animate(i):
     p2.Inlet = fl.LiquidOutlet
     t1.Inlets = [p1.Outlet]
     t2.Inlets = [p2.Outlet]
-    print(fl.VaporFlow, fl.LiquidFlow)
+    # print(fl.VaporFlow, fl.LiquidFlow)
     # print("V: "+str(fl.yi))
 
     # NextTime function

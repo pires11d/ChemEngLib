@@ -62,7 +62,7 @@ class Tank:
     @property
     def NextMixture(self):
         m = Mixture(self.Mixture.Components)
-        m.V = self.NextVolume
+        m.V = self.Mixture.Volume
         m.Temperature = self.Mixture.Temperature
         m.Pressure = self.Mixture.Pressure
 
@@ -76,7 +76,7 @@ class Tank:
         m.wi = wi_in
         wi_list = []
 
-        if self.NextVolume != 0:
+        if self.Mixture.Volume != 0:
             # MASS BALANCE #
             for i,wi in enumerate(wi_in):
                 num = wi * IN + self.Mixture.Mass * self.Mixture.MassFractions[i]
@@ -107,14 +107,15 @@ class Tank:
     def Outlet(self):
         O = Stream(self.Mixture.Components)
         O.wi = self.NextMixture.wi
-        if self.NextVolume == 0.0:
+        if self.Mixture.Volume == 0.0:
             if self.InletVolumeFlow > 0.0:
                 O.Vf = self.InletVolumeFlow
             else:
                 O.Vf = 0.0
         else:
             O.Vf = self.OutletVolumeFlow
-        O.Temperature = self.NextMixture.Temperature
+        O.Temperature = self.Mixture.Temperature
+        O.Pressure = self.Mixture.Pressure
         return O
 
     @property
@@ -581,9 +582,6 @@ class Flash:
         self.Name = None
         self.Pressure = pressure
         self.Inlet = None
-        self.From = None
-        self.VaporTo = None
-        self.LiquidTo = None
         # Drawing #
         self.dt = 0.1
         self.X = 0
@@ -689,7 +687,7 @@ class Flash:
         Y = self.Y
         Hc = 0
         H = self.Height*(1-self.VaporFraction)
-        W = self.Width
+        W = self.Width*0.99
         points = [[X,Y+H],[X,Y+Hc],[X+W/2,Y],[X+W,Y+Hc],[X+W,Y+H]]
         patch = plt.Polygon(points, closed=True, fill=True, color=self.Inlet.Color)
         return patch   
@@ -700,7 +698,7 @@ class Flash:
         Y = self.Y + self.Height*(1-self.VaporFraction)
         Hc = 0
         H = self.Height*(self.VaporFraction)
-        W = self.Width
+        W = self.Width*0.99
         points = [[X,Y+H],[X,Y+Hc],[X+W/2,Y],[X+W,Y+Hc],[X+W,Y+H]]
         patch = plt.Polygon(points, closed=True, fill=None, color=self.VaporOutlet.Color, hatch=self.VaporOutlet.Hatch)
         return patch 
@@ -764,9 +762,10 @@ class Flash:
 
 
 class Distiller:
-    def __init__(self, max_volume, pressure=101325.0):
+    def __init__(self, max_volume, boilup_rate, pressure=101325.0):
         self.Name = None
         self.MaxVolume = max_volume
+        self.Boilup = boilup_rate
         self.Pressure = pressure
         self.Mixture = None
         # Drawing #
@@ -780,6 +779,131 @@ class Distiller:
     def Ki(self):
         self.Mixture.Pressure = self.Pressure
         return self.Mixture.Ki
+
+    @property
+    def Volatility(self):
+        Ki = max(self.Ki)
+        Kj = min(self.Ki)
+        return Ki/Kj    
+
+    @property
+    def _i(self):
+        for i,K in enumerate(self.Ki):
+            if K == max(self.Ki):
+                return i
+
+    @property
+    def NextMoles(self):
+        N = self.Mixture.Moles
+        D = self.Boilup
+        N = N - D * self.dt
+        if N < 0:
+            N = 0
+        self.Mixture.N = N
+        return N
+
+    @property
+    def NextMixture(self):
+        if self.Mixture.Moles == 0:
+            return self.Mixture
+        m = self.Mixture
+        N = self.Mixture.Moles
+        m.N = N
+        D = self.Boilup
+        x = m.MolarFractions[0]
+        K = self.Ki[0]
+        if N == 0:
+            xi = x
+        else:
+            xi = (N*x - D*x*(1-K)*self.dt) / N
+        if xi < 0:
+            xi = 0
+        m.zi = [xi, 1-xi]
+        self.Mixture = m
+        return m
+
+    @property
+    def NextTime(self):
+        self.NextMoles
+        self.NextMixture
+        return None
+
+    @property
+    def xi(self):
+        return self.Mixture.MolarFractions
+
+    @property
+    def yi(self):
+        alpha = self.Volatility
+        xi = self.xi[0]
+        yi = alpha * xi / (1 + xi * (alpha-1))
+        return [yi, 1-yi]
+
+    @property
+    def Outlet(self):
+        O = Stream(self.Mixture.Components)
+        O.zi = self.yi
+        O.Nf = self.Boilup
+        if self.Mixture.Moles == 0.0:
+            O.Nf = 0.0
+        O.Temperature = self.Mixture.Temperature
+        O.Pressure = self.Pressure
+        O._phase = 'l'
+        return O
+
+    @property
+    def ConeHeight(self):
+        return 0
+
+    @property
+    def LiquidHeight(self):
+        return self.Height * self.Mixture.Volume / self.MaxVolume
+
+    @property
+    def LiquidWidth(self):
+        return self.Width
+
+    @property
+    def DrawContour(self):
+        X = self.X
+        Y = self.Y
+        Hc = 0
+        H = self.Height
+        W = self.Width*1.01
+        points = [[X,Y+H],[X,Y+Hc],[X+W/2,Y],[X+W,Y+Hc],[X+W,Y+H]]
+        patch = plt.Polygon(points, closed=None, fill=None, lw=2, edgecolor='black')
+        return patch
+
+    @property
+    def DrawLiquid(self):
+        zero = 0.01
+        X = self.X
+        Y = self.Y
+        Hc = self.ConeHeight
+        W = self.Width
+        h = self.LiquidHeight
+        w = (W-self.LiquidWidth)/2
+        if self.LiquidWidth < self.Width:
+            points = [[X+w+zero,Y+h+zero],[X+W/2,Y+zero],[X+W-w-zero,Y+h+zero]]
+        else:
+            points = [[X+zero*2,Y+h+zero],[X+zero*2,Y+Hc+zero],[X+W/2,Y+zero],[X+W-zero,Y+Hc+zero],[X+W-zero,Y+h+zero]]
+        patch = plt.Polygon(points, closed=True, fill=True,
+                            facecolor=self.NextMixture.Color,
+                            hatch=self.NextMixture.Hatch)
+        return patch
+
+    @property
+    def DrawTopArrow(self):
+        x = self.X + self.Width/2
+        y = self.Y + self.Height
+        l = 0.1
+        s = 0.05
+        patch = plt.arrow(x,y,0,+l,lw=0.5,head_width=s,head_length=s,fill=True,color='black',length_includes_head=True)
+        if self.Outlet.VolumeFlow > 0.0:
+            patch.set_visible(True)
+        else:
+            patch.set_visible(False)
+        return patch
 
 
 class batchDistiller:
