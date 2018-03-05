@@ -81,7 +81,7 @@ st2.Mf = 1
 st2.ParticleSize = 1e-3
 
 F = Stream(comp)
-F.wi = [0.2,0.8]
+F.wi = [0.5,0.5]
 F.Nf = 100
 F.Ki = [10,0.2]
 
