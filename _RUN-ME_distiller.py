@@ -4,7 +4,7 @@ from UnitOp import *
 from _inputs import *
 
 
-bd = Distiller(0.01,1)
+bd = Distiller(0.01,5)
 bd.Mixture = n
 p1 = Pipe(0.1,1)
 t1 = Tank(0.01)
@@ -70,8 +70,9 @@ def animate(i):
     patches.append(p1.DrawContour)
     patches.append(t1.DrawContour)
     patches.append(t1.DrawLiquid)
+    print(bd.Mixture.Mass, t1.Mixture.Mass)
     print(bd.NextMoles, t1.Mixture.Moles)
-    # print(bd.Outlet.MolarFractions, t1.Mixture.MolarFractions)
+    # print(bd.Mixture.MolarFractions, t1.Mixture.MolarFractions)
     for patch in patches:
         ax.add_patch(patch)
     return patches

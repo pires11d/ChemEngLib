@@ -60,6 +60,28 @@ class Tank:
         return V
 
     @property
+    def InletMolarFlow(self):
+        IN = 0
+        if len(self.Inlets) > 0:
+            for i in self.Inlets:
+                IN += i.MolarFlow
+        return IN
+
+    @property
+    def OutletMolarFlow(self):
+        return self.Outlet.MolarFlow
+
+    @property
+    def NextMoles(self):
+        IN = self.InletMolarFlow
+        OUT = self.OutletMolarFlow
+        M = (IN - OUT) * self.dt + self.Mixture.Moles
+        if M < 0.0:
+            M = 0.0
+        self.Mixture.M = M
+        return M
+
+    @property
     def NextMixture(self):
         m = Mixture(self.Mixture.Components)
         m.V = self.Mixture.Volume
@@ -99,14 +121,19 @@ class Tank:
 
     @property
     def NextTime(self):
-        self.NextVolume
+        for i in self.Inlets:
+            if i.Vf == None:
+                self.NextMoles
+                break
+        else:
+            self.NextVolume
         self.NextMixture
         return None
 
     @property
     def Outlet(self):
         O = Stream(self.Mixture.Components)
-        O.wi = self.NextMixture.wi
+        O.wi = self.Mixture.MassFractions
         if self.Mixture.Volume == 0.0:
             if self.InletVolumeFlow > 0.0:
                 O.Vf = self.InletVolumeFlow
@@ -151,8 +178,8 @@ class Tank:
         else:
             points = [[X+zero*2,Y+h+zero],[X+zero*2,Y+Hc+zero],[X+W/2,Y+zero],[X+W-zero,Y+Hc+zero],[X+W-zero,Y+h+zero]]
         patch = plt.Polygon(points, closed=True, fill=True,
-                            facecolor=self.NextMixture.Color,
-                            hatch=self.NextMixture.Hatch)
+                            facecolor=self.Mixture.Color,
+                            hatch=self.Mixture.Hatch)
         return patch
 
     @property
@@ -166,7 +193,7 @@ class Tank:
             patch.set_visible(True)
         else:
             patch.set_visible(False)
-        if self.NextVolume > self.MaxVolume:
+        if self.Mixture.Volume > self.MaxVolume:
             patch.set_color('red')
         return patch
 
@@ -784,13 +811,15 @@ class Distiller:
     def Volatility(self):
         Ki = max(self.Ki)
         Kj = min(self.Ki)
-        return Ki/Kj    
+        return Ki/Kj
 
     @property
     def _i(self):
         for i,K in enumerate(self.Ki):
             if K == max(self.Ki):
-                return i
+                flag = i
+                break
+        return flag
 
     @property
     def NextMoles(self):
@@ -810,15 +839,18 @@ class Distiller:
         N = self.Mixture.Moles
         m.N = N
         D = self.Boilup
-        x = m.MolarFractions[0]
-        K = self.Ki[0]
+        x = m.MolarFractions[self._i]
+        K = self.Ki[self._i]
         if N == 0:
             xi = x
         else:
             xi = (N*x - D*x*(1-K)*self.dt) / N
         if xi < 0:
             xi = 0
-        m.zi = [xi, 1-xi]
+        if self._i == 0:
+            m.zi = [xi, 1-xi]
+        elif self._i == 1:
+            m.zi = [1-xi, xi]
         self.Mixture = m
         return m
 
@@ -835,9 +867,13 @@ class Distiller:
     @property
     def yi(self):
         alpha = self.Volatility
-        xi = self.xi[0]
+        xi = self.xi[self._i]
         yi = alpha * xi / (1 + xi * (alpha-1))
-        return [yi, 1-yi]
+        if self._i == 0:
+            yi_list = [yi,1-yi]
+        elif self._i == 1:
+            yi_list = [1-yi,yi]
+        return yi_list
 
     @property
     def Outlet(self):
@@ -888,8 +924,8 @@ class Distiller:
         else:
             points = [[X+zero*2,Y+h+zero],[X+zero*2,Y+Hc+zero],[X+W/2,Y+zero],[X+W-zero,Y+Hc+zero],[X+W-zero,Y+h+zero]]
         patch = plt.Polygon(points, closed=True, fill=True,
-                            facecolor=self.NextMixture.Color,
-                            hatch=self.NextMixture.Hatch)
+                            facecolor=self.Mixture.Color,
+                            hatch=self.Mixture.Hatch)
         return patch
 
     @property

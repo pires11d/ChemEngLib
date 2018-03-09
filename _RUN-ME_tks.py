@@ -6,11 +6,11 @@ from _inputs import *
 
 tk = recTank(1.0,1.0,1.5)
 tk.Mixture = m0
-tk.OutletVolumeFlow = VolumeFlow(50).m3_h
+tk.OutletVolumeFlow = VolumeFlow(100).m3_h
 
 h = Hopper(initial_angle=30,final_angle=40,Hmin=0.8,Hmax=1.0,r1=3.0,r2=5.5,R=6.0)
 h.Mixture = n0
-h.OutletVolumeFlow = VolumeFlow(20).m3_h
+h.OutletVolumeFlow = VolumeFlow(50).m3_h
 h.X = tk.Width * 1.5
 
 ctk = cylTank(1.2,1.2,30)
@@ -53,8 +53,8 @@ def init():
 
 def animate(i):
     # print(tk.NextVolume,h.NextVolume,ctk.NextVolume)
-    if i > 500:
-        ctk.OutletVolumeFlow = VolumeFlow(20).m3_h
+    if i > 50:
+        ctk.OutletVolumeFlow = VolumeFlow(40).m3_h
         tk.Inlets = [ctk.Outlet]
     else:
         tk.Inlets = [st0]
