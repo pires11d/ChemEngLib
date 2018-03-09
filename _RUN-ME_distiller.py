@@ -21,7 +21,7 @@ p1.ToTop = t1
 # x_list = []
 # y_list = []
 # t = 0
-# for i in np.arange(0,4000,1):
+# for i in np.arange(0,10000,1):
 #     t += bd.dt
 #     t_list.append(t)
 #     # x1_list.append(bd.NextMixture.MolarFractions[0])
@@ -30,7 +30,7 @@ p1.ToTop = t1
 #     y_list.append(bd.yi[0])
 
 # plt.plot(t_list,x_list,t_list,y_list)
-# plt.xlim(0,400)
+# plt.xlim(0,1000)
 # plt.ylim(0,1)
 # plt.show()
 
@@ -70,9 +70,9 @@ def animate(i):
     patches.append(p1.DrawContour)
     patches.append(t1.DrawContour)
     patches.append(t1.DrawLiquid)
-    print(bd.Mixture.Mass, t1.Mixture.Mass)
-    print(bd.NextMoles, t1.Mixture.Moles)
-    # print(bd.Mixture.MolarFractions, t1.Mixture.MolarFractions)
+    # print(bd.Mixture.Mass, t1.Mixture.Mass)
+    # print(bd.Mixture.Moles, t1.Mixture.Moles)
+    print(bd.Mixture.MolarFractions, t1.Mixture.MolarFractions)
     for patch in patches:
         ax.add_patch(patch)
     return patches

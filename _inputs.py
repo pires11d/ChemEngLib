@@ -53,12 +53,12 @@ n0.Temperature = 273
 m = Mixture(comp)
 m.N = 0.0
 m.zi = [0.5,0.5]
-m.Ki = [0.1,1]
+m.Ki = [0.1,2]
 
 n = Mixture(comp)
 n.N = 100
 n.zi = [0.5,0.5]
-n.Ki = [0.1,1] 
+n.Ki = [0.1,2] 
 
 #endregion
 

@@ -6,7 +6,14 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, OrderedDict
+
+class OrderedDefaultDict(OrderedDict, defaultdict):
+    def __init__(self, default_factory=None, *args, **kwargs):
+        super(OrderedDefaultDict, self).__init__(*args, **kwargs)
+        self.default_factory = default_factory
+
+
 
 #from thermoChemical import *
 from Chemical import *
@@ -561,14 +568,17 @@ class Mixer:
 
     def MassBalance(self, inlets):
         dc_list = []
-        for I in inlets:
-            dc_list.append(dict(zip(I.Components, I.MassFlows)))
-        dd = defaultdict(float)
+        for i,I in enumerate(inlets):
+            items = [(c,I.MassFlows[j]) for j,c in enumerate(I.Components)]
+            od = OrderedDict(items)
+            dc_list.append(od)
+            # dc_list.append(dict(zip(I.Components, I.MassFlows)))
+        dd = OrderedDefaultDict(float)
         for dc in dc_list:
             for k,v in dc.items():
                 dd[k] += v
-        d = dict(dd)
-        return d
+        # d = OrderedDict(dd)
+        return dd
 
     def OutletComponents(self, inlets):
         c_names = self.MassBalance(inlets).keys()
@@ -839,8 +849,8 @@ class Distiller:
         N = self.Mixture.Moles
         m.N = N
         D = self.Boilup
-        x = m.MolarFractions[self._i]
-        K = self.Ki[self._i]
+        x = m.MolarFractions[1-self._i]
+        K = self.Ki[1-self._i]
         if N == 0:
             xi = x
         else:
