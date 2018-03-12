@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 from collections import Counter, defaultdict, OrderedDict
 
-class OrderedDefaultDict(OrderedDict, defaultdict):
-    def __init__(self, default_factory=None, *args, **kwargs):
-        super(OrderedDefaultDict, self).__init__(*args, **kwargs)
-        self.default_factory = default_factory
+# class OrderedDefaultDict(OrderedDict, defaultdict):
+#     def __init__(self, default_factory=None, *args, **kwargs):
+#         super(OrderedDefaultDict, self).__init__(*args, **kwargs)
+#         self.default_factory = default_factory
 
 
 
@@ -567,13 +567,27 @@ class Mixer:
         return [F/self.OutletFlow(inlets) for F in self.InletFlows(inlets)]
 
     def MassBalance(self, inlets):
+        # WINDOWS VERSION #
+        # dc_list = []
+        # for i,I in enumerate(inlets):
+        #     items = [(c,I.MassFlows[j]) for j,c in enumerate(I.Components)]
+        #     od = OrderedDict(items)
+        #     dc_list.append(od)
+        #     # dc_list.append(dict(zip(I.Components, I.MassFlows)))
+        # dd = OrderedDefaultDict(float)
+        # # dd = OrderedDict
+        # for dc in dc_list:
+        #     for k,v in dc.items():
+        #         dd[k] += v
+        # # d = OrderedDict(dd)
+        # return dd
         dc_list = []
         for i,I in enumerate(inlets):
             items = [(c,I.MassFlows[j]) for j,c in enumerate(I.Components)]
             od = OrderedDict(items)
             dc_list.append(od)
             # dc_list.append(dict(zip(I.Components, I.MassFlows)))
-        dd = OrderedDefaultDict(float)
+        dd = defaultdict(float)
         for dc in dc_list:
             for k,v in dc.items():
                 dd[k] += v
