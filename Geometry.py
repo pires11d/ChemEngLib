@@ -1,3 +1,13 @@
+"""Module that contains the most basic geometric shapes:
+## 2D:
+- Circle
+- Rectangle
+## 3D:
+- Cylinder
+- Sphere
+- Cube
+- Cone"""
+
 import math
 
 # 2-D Shapes #

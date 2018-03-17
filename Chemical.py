@@ -1,4 +1,7 @@
-"""Module that contains classes that represent the chemical components of a system."""
+"""Module that contains classes that represent the chemical components of a system.
+- Substance
+- Mixture
+- Stream"""
 
 
 from collections import OrderedDict
