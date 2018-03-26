@@ -1,7 +1,5 @@
-from Chemical import *
-from Converter import *
-from UnitOp import *
-
+from Chemicals import *
+from Tools import *
 
 #region SUBSTANCES:
 
@@ -82,7 +80,7 @@ st2.ParticleSize = 1e-3
 
 F = Stream(comp)
 F.wi = [0.5,0.5]
-F.Nf = 100
+F.Nf = 1000
 F.Ki = [10,0.2]
 
 #endregion
