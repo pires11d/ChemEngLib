@@ -321,4 +321,3 @@ class Mixture:
         for i,c in enumerate(self.SolidComponents):
             Cp += self.SolidFractions[i] * c.SpecificHeat
         return Cp
-

@@ -4,7 +4,7 @@ from matplotlib import animation
 from collections import Counter, defaultdict, OrderedDict
 from Chemicals import *
 from Tools.Geometry import *
-from .Basics import Mixer
+from .Piping import Mixer
 
 
 class Tank:
@@ -354,4 +354,6 @@ class Reactor(Tank):
         self.Y = 0
         self.Height = 1.0
         self.Width = 1.0
+
+    
 

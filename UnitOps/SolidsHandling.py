@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 from collections import Counter, defaultdict, OrderedDict
 from Chemicals import *
-from .Basics import *
+from .Piping import *
 
 
 class Mill:
