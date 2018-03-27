@@ -3,32 +3,37 @@ from UnitOps.Tanks import Reactor
 from _Rinputs import *
 import matplotlib.pyplot as plt
 
-t = Reactor()
-t.dt = 1
-t.Mixture = m
+subs = [a,b,c,d]
 
-r = Reaction(subs)
-r.NumberOfReactants = 2
-r.NumberOfProducts = 2
-r.Tank = t
-r.KineticConstant = 0.2
+m = Mixture(subs)
+m.zi = [0.5,0.5,0,0]
+m.N = 100
 
-# print(r.ReactantNames, r.ProductNames)
+r1 = Reaction(m, order=[1,0])
+r1.Stoichiometry = [1,2,1,2]
+r1.NumberOfReactants = 2
+r1.NumberOfProducts = 2
+r1.KineticConstant = 1e-1
+# print(r1.Order)
+
+R = Reactor(r1)
+R.dt = 0.5
+
+# print(r1.ReactantNames)
+# print(r1.ConsumptionRate(a))
+# print(r1.ConsumptionRate(b))
+# print(r1.ProductNames)
+# print(r1.ProductionRate(c))
+# print(r1.ProductionRate(d))
+
 t_list = []
-z_list = []
+C_list = []
 time = 0
 while time < 10:
-    time += t.dt
+    time += R.dt
     t_list.append(time)
-    z_list.append(t.Mixture.zi)
-    dC = r.ConsumptionRate("A")
-    Na = m.MolarFractions[0] * m.Moles
-    Nc = m.MolarFractions[2] * m.Moles
-    Na = Na - dC * t.dt
-    Nc = Nc + dC * t.dt
-    za = Na/m.Moles
-    zc = Nc/m.Moles
-    t.Mixture.zi = [za, 0, zc, 0]
+    C_list.append(R.Mixture.MolarFractions)
+    R.NextMoles
 
-plt.plot(t_list,z_list)
+plt.plot(t_list,C_list)
 plt.show()

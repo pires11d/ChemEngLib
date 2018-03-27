@@ -342,12 +342,13 @@ class cylTank(Tank):
 
 
 class Reactor(Tank):
-    def __init__(self, max_volume=1.0):
+    def __init__(self, reaction, max_volume=1.0):
         self.Name = None
+        self.Reaction = reaction
         self.MaxVolume = max_volume
         self.Inlets = []
         self.OutletVolumeFlow = 0.0
-        self.Mixture = None
+        self.Mixture = reaction.Mixture
         # Drawing #
         self.dt = 0.1
         self.X = 0 
@@ -355,5 +356,36 @@ class Reactor(Tank):
         self.Height = 1.0
         self.Width = 1.0
 
-    
-
+    @property
+    def NextMoles(self):
+        nR = len(self.Reaction.Reactants)
+        N = self.Mixture.Moles
+        zi = self.Mixture.MolarFractions
+        ni = []
+        dCr = []
+        if N > 0:
+            for i,r in enumerate(self.Reaction.Reactants):
+                dCr.append(self.Reaction.ConsumptionRate(r) * self.dt)
+                N -= dCr[i]
+                nr = self.Reaction.Mixture.ComponentMoles[i] - dCr[i]
+                ni.append(nr)
+            dCp = []
+            for i,p in enumerate(self.Reaction.Products):
+                dCp.append(self.Reaction.ProductionRate(p) * self.dt)
+                N += dCp[i]
+                np = self.Mixture.ComponentMoles[i+nR] + dCp[i]
+                ni.append(np)
+            if N > 0:
+                zi = []
+                for i,n in enumerate(ni):
+                    if n > 0:
+                        zi.append(n/N)
+                    else:
+                        zi.append(0)
+            else:
+                N = 0
+                zi = list([0 for i in self.Mixture.Components]) 
+        self.Mixture.N = N
+        self.Mixture.zi = zi  
+        return self.Mixture.N
+        

@@ -167,6 +167,20 @@ class Mixture:
         return N
 
     @property
+    def ComponentMass(self):
+        return [wi*self.Mass for wi in self.MassFractions]
+    @property
+    def ComponentMoles(self):
+        return [zi*self.Moles for zi in self.MolarFractions]
+
+    @property
+    def MassConcentrations(self):
+        return [mi/self.Volume for mi in self.ComponentMass]
+    @property
+    def MolarConcentrations(self):
+        return [ni/self.Volume for ni in self.ComponentMoles]
+
+    @property
     def Density(self):
         rho = 0
         for i,c in enumerate(self.Components):

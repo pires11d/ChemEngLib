@@ -29,9 +29,3 @@ d.Viscosity0 = a.Viscosity0
 d.SpecificHeat0 = a.SpecificHeat0
 d.MolarMass = a.MolarMass
 
-subs = [a,b,c,d]
-
-m = Mixture(subs)
-m.zi = [1,0,0,0]
-m.V = 1
-

@@ -1,15 +1,15 @@
 
 class Reaction:
-    def __init__(self, components):
-        self.Components = components
-        self.ComponentNames = [c.Name for c in self.Components]
+    def __init__(self, mixture, order=[1]):
+        self.Mixture = mixture
+        self.Components = mixture.Components
+        self.ComponentNames = mixture.ComponentNames
         self.Stoichiometry = [1 for c in self.Components]
         self.Temperature = 298.15
         self.Pressure = 101325.0
         self.NumberOfReactants = 1
         self.NumberOfProducts = 1
-        self.isElementary = True
-        self.Tank = None
+        self.Order = order
         # Constants #
         self.KineticConstant = None
         self.ActivationEnergy = None
@@ -41,33 +41,33 @@ class Reaction:
     def ProductNames(self):
         return [c.Name for c in self.Products]
 
-    @property
-    def Order(self):
-        if self.isElementary == True:
-            return self.NumberOfReactants
-        else:
-            return 1
-
     def ConsumptionRate(self, reactant):
-        for i,r in enumerate(self.ReactantNames):
+        index = None 
+        for i,r in enumerate(self.Reactants):
             if r == reactant:
                 index = i
-        # V = self.Tank.Mixture.Volume
+        V = self.Mixture.Volume
         s = self.Stoichiometry[index]
-        wi = self.Tank.Mixture.MolarFractions[index]
-        C = self.Tank.Mixture.Moles * wi
+        C = 1
+        for i,o in enumerate(self.Order):
+            C = C * self.Mixture.MolarConcentrations[i] ** o
         k = self.KineticConstant
-        n = s*k*C
-        return n
+        rate = s*k*C
+        return rate * V
 
     def ProductionRate(self, product):
-        for i,p in enumerate(self.ProductNames):
+        index = None 
+        nR = self.NumberOfReactants
+        for i,p in enumerate(self.Products):
             if p == product:
                 index = i
-        # V = self.Tank.Mixture.Volume
-        s = self.Stoichiometry[index]
-        wi = self.Tank.Mixture.MolarFractions[index]
-        C = self.Tank.Mixture.Moles * wi
+        V = self.Mixture.Volume
+        s = self.Stoichiometry[index+nR]
+        C = 1
+        for i,o in enumerate(self.Order):
+            C = C * self.Mixture.MolarConcentrations[i] ** o
         k = self.KineticConstant
-        n = s*k*C
-        return n
+        rate = s*k*C
+        return rate * V
+
+    
