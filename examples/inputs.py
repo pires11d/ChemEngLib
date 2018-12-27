@@ -1,5 +1,6 @@
-from Chemicals import *
-from Tools import *
+from chemicals import *
+from tools import *
+
 
 #region SUBSTANCES:
 
@@ -65,7 +66,7 @@ n.Ki = [0.1,2]
 st0 = Stream(comp)
 st0.wi = [0.0,1.0]
 # st0.wi = [1]
-st0.Vf = VolumeFlow(0).m3_h
+st0.Vf = 0
 st0.Temperature = 373
 
 st = Stream([g,i])

@@ -1,0 +1,2 @@
+
+    tanks.show_animation()

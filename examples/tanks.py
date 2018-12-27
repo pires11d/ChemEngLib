@@ -1,7 +1,10 @@
-from UnitOps import *
-from _inputs import *
+from unit_ops import *
+from tools import *
+from .inputs import *
+import matplotlib.pyplot as plt
 
 
+#region INPUTS
 tk = recTank(1.0,1.0,1.5)
 tk.Mixture = m0
 tk.OutletVolumeFlow = VolumeFlow(100).m3_h
@@ -29,18 +32,16 @@ p2.FromBottom = h
 p2.ToTop = sh2
 sh2.From = p2
 sh2.To = ctk
-
 #endregion
 
-#region ANIMATION:
+#region ANIMATION
 
-# Canvas #
+# Canvas
 fig = plt.figure()
 fig.set_dpi(100)
-fig.set_size_inches(8,8)
+fig.set_size_inches(5,3)
 ax = plt.axes(xlim=(-0.5, 5.5), ylim=(-0.5, 4.5))
 
-# Function Definition #
 def init():
     ax.add_patch(tk.DrawContour)
     ax.add_patch(h.DrawContour)
@@ -50,7 +51,6 @@ def init():
     return tk.DrawContour,h.DrawContour,ctk.DrawContour, sh1.DrawContour, sh2.DrawContour
 
 def animate(i):
-    # print(tk.NextVolume,h.NextVolume,ctk.NextVolume)
     if i > 50:
         ctk.OutletVolumeFlow = VolumeFlow(40).m3_h
         tk.Inlets = [ctk.Outlet]
@@ -87,9 +87,9 @@ def animate(i):
     for patch in patches:
         ax.add_patch(patch)
     return patches
-
-# Function Call #
-anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
-plt.show()
-
 #endregion
+
+# Function Call
+def show_animation():
+    anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
+    plt.show()

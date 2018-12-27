@@ -1,7 +1,8 @@
-from UnitOps import *
-from _inputs import *
+from unit_ops import *
+from .inputs import *
 
 
+#region INPUTS
 fl = Flash()
 fl.Y = 1.0
 p1 = Pipe(0.1,1.0)
@@ -19,17 +20,17 @@ p1.FromTop = fl
 p1.ToTop = t1
 p2.FromBottom = fl
 p2.ToTop = t2
-
+#endregion
 
 #region ANIMATION:
 
-# Canvas #
+# Canvas
 fig = plt.figure()
 fig.set_dpi(100)
 fig.set_size_inches(8,8)
 ax = plt.axes(xlim=(-0.5, 5.5), ylim=(-0.5, 4.5))
 
-# Function Definition #
+# Animation Function
 def init():
     ax.add_patch(fl.DrawContour)
     ax.add_patch(t1.DrawContour)
@@ -71,8 +72,9 @@ def animate(i):
         ax.add_patch(patch)
     return patches
 
-# Function Call #
-anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
-plt.show()
-
 #endregion
+
+# Function Call
+def show_animation():
+    anim = animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=30,blit=True)
+    plt.show()
