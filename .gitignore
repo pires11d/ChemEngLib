@@ -1,6 +1,7 @@
 # Add any directories, files, or patterns you don't want to be tracked by version control
 .vs
-.vscode/
+.vscode
 _old/
 __pycache__/
 **/__pycache__
+*.pyc
