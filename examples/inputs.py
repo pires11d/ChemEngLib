@@ -1,5 +1,5 @@
-from chemicals import *
-from tools import *
+from chemical import *
+from utilities import *
 
 
 #region SUBSTANCES:

@@ -1,4 +1,4 @@
-from unit_ops import *
+from equipment import *
 from .inputs import *
 
 

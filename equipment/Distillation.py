@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation
 from collections import Counter, defaultdict, OrderedDict
-from chemicals import *
+from chemical import *
 from .Piping import Mixer
 
 

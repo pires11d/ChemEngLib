@@ -1,5 +1,5 @@
-from chemicals import *
-from unit_ops.Tanks import Reactor
+from chemical import *
+from equipment.Tanks import Reactor
 import matplotlib.pyplot as plt
 
 

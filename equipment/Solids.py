@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from collections import Counter, defaultdict, OrderedDict
-from chemicals import *
+from chemical import *
 from .Piping import *
 
 

@@ -2,8 +2,8 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from collections import Counter, defaultdict, OrderedDict
-from chemicals import *
-from tools.Geometry import *
+from chemical import *
+from utilities.Geometry import *
 from .Piping import Mixer
 
 

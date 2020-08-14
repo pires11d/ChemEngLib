@@ -2,9 +2,9 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from collections import Counter, defaultdict, OrderedDict
-from chemicals import *
-from tools.Geometry import Circle
-from tools.Correlation import Re_D
+from chemical import *
+from utilities.Geometry import Circle
+from utilities.Correlation import Re_D
 
 
 class Pipe:
